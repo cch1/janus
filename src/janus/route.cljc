@@ -1,4 +1,4 @@
-(ns janus.core
+(ns janus.route
   (:import #?(:cljs goog.Uri
               :clj [java.net URI URLDecoder URLEncoder]))
   (:require clojure.string))
@@ -64,7 +64,7 @@
                         ())]
     (cons [handler route-params] children)))
 
-(defn match-route
+(defn identify
   "Given a route definition data structure and a URI as a string, return the
    segment sequence, if any, that completely matches the path."
   [routes uri-string]
@@ -89,7 +89,7 @@
 
 (defn- normalize-targets [targets] (map (fn [t] (if (vector? t) t [t []])) targets))
 
-(defn build-route
+(defn generate
   [routes targets]
   (let [[root-handler routes] (compile-route routes)
         [[target params] & targets] (normalize-targets targets)]
