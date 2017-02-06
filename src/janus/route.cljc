@@ -60,14 +60,14 @@
   (build [this args] (this args)))
 
 (defn- match-segments
-  [[handler routes] [segment & remaining-segments] route-params]
-  (when-let [children (if segment
-                        (some (fn [[pattern subroutes]]
-                                (when-let [route-params (match pattern (url-decode segment))]
-                                  (match-segments subroutes remaining-segments route-params)))
-                              (seq routes))
-                        ())]
-    (cons [handler route-params] children)))
+  [routes [segment & remaining-segments]]
+  (if segment
+    (some (fn [[pattern [handler subroutes]]]
+            (when-let [route-params (match pattern (url-decode segment))]
+              (when-let [children (match-segments subroutes remaining-segments)]
+                (cons [handler route-params] children))))
+          (seq routes))
+    ()))
 
 (defn identify
   "Given a route definition data structure and a URI as a string, return the
@@ -75,21 +75,20 @@
   [routes uri-string]
   (let [path (normalize-uri uri-string)
         segments (if (= "/" path) [] (rest (clojure.string/split path #"/")))
-        routes (normalize-routes routes)]
-    (match-segments routes segments nil)))
+        [root-handler routes] (normalize-routes routes)]
+    (when-let [matched (match-segments routes segments)]
+      (cons [root-handler nil] matched))))
 
 (defn- build-segments
-  [routes [[target params] & targets] segments]
+  [routes [[target params] & targets]]
   (if target
     (or (some (fn [[pattern [handler subroutes]]]
                (when (= handler target)
                  (let [segment (url-encode (build pattern params))]
-                   (build-segments subroutes targets
-                                   (conj segments segment)))))
+                   (cons segment (build-segments subroutes targets)))))
              (seq routes))
-       (throw (ex-info "Can't build route"
-                       {:target target :routes routes :segments segments})))
-    segments))
+       (throw (ex-info "Can't build route" {:target target :routes routes})))
+    ()))
 
 (defn- normalize-targets [targets] (map (fn [t] (if (vector? t) t [t nil])) targets))
 
@@ -98,5 +97,5 @@
   (let [[root-handler routes] (normalize-routes routes)
         [[target params] & targets] (normalize-targets targets)]
     (assert (= root-handler target) "Root target does not match")
-    (let [segments (build-segments routes targets [])]
+    (let [segments (build-segments routes targets)]
       (str "/" (clojure.string/join "/" segments)))))
