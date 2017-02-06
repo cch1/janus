@@ -19,6 +19,11 @@
   #?(:clj ([s encoding]
            (URLDecoder/decode s encoding))))
 
+(defn- normalize-uri
+  [uri]
+  #?(:clj (.getRawPath (.normalize (URI. uri)))
+     :cljs (.getPath (goog.Uri. uri))))
+
 (defn- normalize-routes
   "Yields `route => [as-segment handler (routes)])`"
   [route]
@@ -68,8 +73,7 @@
   "Given a route definition data structure and a URI as a string, return the
    segment sequence, if any, that completely matches the path."
   [routes uri-string]
-  (let [path #?(:clj (.getRawPath (.normalize (URI. uri-string)))
-                :cljs (.getPath (goog.Uri. uri-string))) ; protocol?
+  (let [path (normalize-uri uri-string)
         segments (if (= "/" path) [] (rest (clojure.string/split path #"/")))
         routes (normalize-routes routes)]
     (match-segments routes segments nil)))
