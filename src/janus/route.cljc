@@ -19,12 +19,12 @@
   #?(:clj ([s encoding]
            (URLDecoder/decode s encoding))))
 
-(defn- compile-route
+(defn- normalize-routes
   "Yields `route => [as-segment handler (routes)])`"
   [route]
   (cond
     (vector? route) (let [[pattern children] route]
-                      [pattern (map (fn [[pattern route]] [pattern (compile-route route)]) children)])
+                      [pattern (map (fn [[pattern route]] [pattern (normalize-routes route)]) children)])
     true [route ()]))
 
 (defprotocol AsSegment
@@ -71,7 +71,7 @@
   (let [path #?(:clj (.getRawPath (.normalize (URI. uri-string)))
                 :cljs (.getPath (goog.Uri. uri-string))) ; protocol?
         segments (if (= "/" path) [] (rest (clojure.string/split path #"/")))
-        routes (compile-route routes)]
+        routes (normalize-routes routes)]
     (match-segments routes segments nil)))
 
 (defn- build-segments
@@ -87,11 +87,11 @@
                        {:target target :routes routes :segments segments})))
     segments))
 
-(defn- normalize-targets [targets] (map (fn [t] (if (vector? t) t [t []])) targets))
+(defn- normalize-targets [targets] (map (fn [t] (if (vector? t) t [t nil])) targets))
 
 (defn generate
   [routes targets]
-  (let [[root-handler routes] (compile-route routes)
+  (let [[root-handler routes] (normalize-routes routes)
         [[target params] & targets] (normalize-targets targets)]
     (assert (= root-handler target) "Root target does not match")
     (let [segments (build-segments routes targets [])]
