@@ -39,4 +39,5 @@
         (let [route-params (into {} (filter (fn [[k v]] (keyword? k))) route)]
           (handler (-> req
                       (update :params merge route-params)
+                      (assoc :route-params route-params)
                       (assoc ::route route))))))))

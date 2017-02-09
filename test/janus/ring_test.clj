@@ -9,7 +9,8 @@
           routes [:R {"foo" :a}]
           request' ((make-identifier identity routes) request)]
       (is (= (request' :janus.ring/route) [[:R nil] [:a "foo"]]))
-      (is (= (request' :params) {:R nil :a "foo"})))))
+      (is (= (request' :params) {:R nil :a "foo"}))
+      (is (= (request' :route-params) {:R nil :a "foo"})))))
 
 (def handler (fn [r] (-> r :janus.ring/route last last)))
 
