@@ -7,7 +7,7 @@
   :release-tasks [["vcs" "assert-committed"]
                   ["v" "update"]
                   ["vcs" "push"]
-                  ["deploy"]]
+                  ["deploy" "clojars"]]
   :min-lein-version "2.5.2"
   :dependencies [[org.clojure/clojure "1.8.0"]]
   :profiles {:dev {:dependencies [[ring/ring-mock "0.3.0"]]}})
