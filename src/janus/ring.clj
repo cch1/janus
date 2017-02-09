@@ -1,5 +1,5 @@
 (ns janus.ring
-  (:require [janus.route :refer [identify]]))
+  (:require [janus.route :refer [identify normalize]]))
 
 (defprotocol Dispatchable
   (dispatch [this request args]))
@@ -32,10 +32,11 @@
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"
   [handler routes]
   {:pre [routes]}
-  (fn route-identifier
-    [{:keys [uri path-info] :as req}]
-    (let [route (identify routes (or path-info uri))]
-      (let [route-params (into {} (filter (fn [[k v]] (keyword? k))) route)]
-        (handler (-> req
-                     (update :params merge route-params)
-                     (assoc ::route route)))))))
+  (let [routes (normalize routes)]
+    (fn route-identifier
+      [{:keys [uri path-info] :as req}]
+      (let [route (identify routes (or path-info uri))]
+        (let [route-params (into {} (filter (fn [[k v]] (keyword? k))) route)]
+          (handler (-> req
+                      (update :params merge route-params)
+                      (assoc ::route route))))))))

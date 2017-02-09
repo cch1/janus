@@ -24,12 +24,12 @@
   #?(:clj (.getRawPath (.normalize (URI. uri)))
      :cljs (.getPath (goog.Uri. uri))))
 
-(defn normalize-routes
-  "Yields `route => [handler [as-segment child-routes]]`"
+(defn normalize
+  "Yields `route => [handler [segment child-routes]]`"
   [route]
   (cond
-    (vector? route) (let [[pattern children] route]
-                      [pattern (map (fn [[pattern route]] [pattern (normalize-routes route)]) children)])
+    (vector? route) (let [[segment children] route]
+                      [segment (map (fn [[segment route]] [segment (normalize route)]) children)])
     true [route ()]))
 
 (defprotocol AsSegment
@@ -52,7 +52,7 @@
   java.util.regex.Pattern ; invertible
   (match [this segment] (re-matches this segment))
   (build [this args] (if (vector? args) (first args) args))
-  clojure.lang.PersistentVector ; potentially invertible
+  clojure.lang.PersistentVector ; invertible when elements are inverses of each other
   (match [this segment] (match (first this) segment))
   (build [this args] (build (second this) args))
   clojure.lang.Fn ; potentially invertible
@@ -75,7 +75,7 @@
   [routes uri-string]
   (let [path (normalize-uri uri-string)
         segments (if (= "/" path) [] (rest (clojure.string/split path #"/")))
-        [root-handler routes] (normalize-routes routes)]
+        [root-handler routes] routes]
     (match-segments routes segments)))
 
 (defn identify
@@ -100,7 +100,7 @@
 
 (defn generate*
   [routes targets]
-  (let [[_ routes] (normalize-routes routes)
+  (let [[_ routes] routes
         segments (build-segments routes targets)]
     (str "/" (clojure.string/join "/" segments))))
 
