@@ -12,9 +12,9 @@ Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/l
 
 ### Fixed
 
-## 0.1.0 - 2017-02-05
+## 0.1.0 - 2017-02-08
 ### Added
-- Initial functionality for matching, generating and dispatching
+- Initial functionality for identifying & generating, plus basic ring identify/dispatching handler
 
-[Unreleased]: https://github.com/your-name/janus/compare/0.1.0...HEAD
-[0.1.0]: https://github.com/your-name/janus/compare/0.1.0...0.1.1
+[Unreleased]: https://github.com/cch1/janus/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/cch1/janus/compare/0.1.0...0.1.1
