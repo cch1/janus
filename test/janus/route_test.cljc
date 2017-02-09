@@ -4,7 +4,7 @@
    #?(:clj  [clojure.test :refer :all]
       :cljs [cljs.test :refer-macros [deftest is testing]])))
 
-(deftest match-patterns
+(deftest identify-patterns
   (testing "nil"
     (is (= [[:R nil]] (identify [:R] "/"))))
   (testing "string"
@@ -24,7 +24,7 @@
   (testing "function"
     (is (= [[:R nil] [:even 12]] (identify [:R {#(when-let [i (Integer/parseInt %)] (when (even? i) i)) :even}] "/12")))))
 
-(deftest build-patterns
+(deftest generate-patterns
   (testing "nil"
     (is (= "/" (generate [:R {}] [:R]))))
   (testing "string"
@@ -78,7 +78,7 @@
                       {"e" [:e {}]
                        "f|F" :f}]}]}])
 
-(deftest match-structure
+(deftest identify-structure
   (testing "root"
     (is (= [[:root nil]] (identify $rs "/"))))
   (testing "top"
@@ -93,7 +93,7 @@
     (is (nil? (identify $rs "/a/nothinghere")))
     (is (nil? (identify $rs "/a/d/e/Z")))))
 
-(deftest build-structure
+(deftest generate-structure
   (testing "root"
     (is (= "/" (generate $rs [[:root nil]]))))
   (testing "top"
@@ -111,3 +111,45 @@
     (is (= [[:R nil] ['top "a|b"]] (identify [:R {true 'top}] "/a%7cb"))))
   (testing "encode"
     (is (#{"/a%7Cb" "/a%7cb"} (generate [:R {true 'top}] [:R ['top "a|b"]])))))
+
+(deftest abbreviated
+  (testing "identify"
+    (testing "nil"
+      (is (= [] (identify* [:R] "/"))))
+    (testing "string"
+      (is (= [['a "a"]] (identify* [:R {"a" 'a}] "/a")))))
+  (testing "generate"
+    (testing "nil"
+      (is (= "/" (generate* [:R {}] []))))
+    (testing "string"
+      (is (= "/a" (generate* [:R {"a" 'a}] ['a]))))))
+
+(deftest abbreviated-invertible
+  (testing "nil"
+    (let [routes [:root {}]
+          route "/"]
+      (is (= route (generate* routes (identify* routes route))))))
+  (testing "string"
+    (let [routes [:root {"test" :s}]
+          route "/test"]
+      (is (= route (generate* routes (identify* routes route))))))
+  (testing "keyword"
+    (let [routes [:root {:test :test}]
+          route "/test"]
+      (is (= route (generate* routes (identify* routes route))))))
+  (testing "boolean"
+    (let [routes [:root {true :b}]
+          route "/test"]
+      (is (= route (generate* routes (identify* routes route))))))
+  (testing "regex"
+    (let [routes [:root {#"\d{3}-\d{4}" :test}]
+          route "/867-5309"]
+      (is (= route (generate* routes (identify* routes route))))))
+  (testing "composite"
+    (let [routes [:root {[#"(\d{3})-(\d{4})" (comp (partial apply format "%s-%s") rest)] :c}]
+          route "/867-5309"]
+      (is (= route (generate* routes (identify* routes route))))))
+  (testing "multi-level"
+    (let [routes [:root {"s" [:s {:k [:k {[#"(\d{3})-(\d{4})" (comp (partial apply format "%s-%s") rest )] :c}]}]}]
+          route "/s/k/867-5309"]
+      (is (= route (generate* routes (identify* routes route)))))))
