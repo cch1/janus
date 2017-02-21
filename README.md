@@ -6,9 +6,10 @@ A Clojure routing library.  This is my second initiative on this front -the firs
  * [wire](https://github.com/mwmitchell/wire)
  * [bidi](https://github.com/juxt/bidi)
  * [compojure](https://github.com/weavejester/compojure)
+ * [pedestal](https://github.com/pedestal/pedestal)
 
 ## Context
-The interpretation of "URL"s is rife with misunderstandings, competing standards and imcompatible interpretations.  in the context of janus, a URI is the name by which a resource is identified on the web.
+The interpretation of "URL"s is rife with misunderstandings, competing standards and imcompatible interpretations.  in the context of janus, a URI is the name by which a local resource is referenced on the web.
 
 The way I see it, there are two jobs for a router
 
@@ -17,19 +18,15 @@ The way I see it, there are two jobs for a router
 
 These are the core functions of a "pure" routing engine and they should be powerful and generally uncompromised by secondary concerns.
 
- * For inbound matched routes, dispatch to an associated handler function, conveying the context of the match.
- * Provide a compact syntax.
-
 ## Design Goals
  1. The path components of URIs and are assumed (per [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)) to be a string of `/`-separated and [url-encoded](https://en.wikipedia.org/wiki/Percent-encoding) segments.
  1. The route abstraction handles encoding and destructuring transparently; it models the URI
     as a sequence of URL-decoded string segments.
  1. Route matching is decomplected from handler dispatching per the Ring model.
  1. For all but the most complex routes, pure data represents the entire route definition.
- 1. Forward (generation) and backward (matching) routing are inverses of each other.
+ 1. Forward (generation) and backward (identification) routing are inverses of each other.
  1. Protocols are used for segment matching and segment generation.
- 1. Dispatching is based on route matching only.  There is no support for dispatching
-    based on other attributes of an HTTP request, such as method.
+ 1. Dispatching is based on route matching only.  There is no support for dispatching based on other attributes of an HTTP request, such as method.
  1. Routing works the same in Clojure and Clojurescript.
  1. A single compact data structure should represent all that is necessary for matching, generating and even dispatching.  For common route components (constant strings, leaf nodes, etc), the syntax should be particularly compact.
 
