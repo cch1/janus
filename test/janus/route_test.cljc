@@ -7,6 +7,13 @@
 (deftest router-construction
   (is (instance? janus.route.Router (router :r))))
 
+(deftest normalization
+  (let [normalized [:root ["root" identity {}]]]
+    (is (= [:root ["root" identity {}]] (node (router [:root identity]))))
+    (is (= [:root ["root" identity {}]] (node (router [:root ["root" identity]]))))
+    (is (= [:root ["root" :root {}]] (node (router [:root {}]))))
+    (is (= [:root ["root" :root {}]] (node (router [:root "root"]))))))
+
 (deftest identify-patterns
   (testing "nil"
     (let [router (-> [:R [nil :R {}]] router (identify "/"))]

@@ -133,28 +133,30 @@
      {:post [(valid-route? %)]}
      (if-not (sequential? route)
        (normalize [::root [nil route {}]]) ; degenerate route table; explicit root
-       (let [[identifiable v] route]
-         (if-not (vector? v)
-           (normalize [identifiable [v]])
-           (let [s (name identifiable)]
-             (m/match [(count v) v]
-                      [0 []]
-                      , (normalize [identifiable [s identifiable {}]])
-                      [1 [(a :guard coll?)]]
-                      , (normalize [identifiable [s identifiable a]])
-                      [1 [(a :guard as-segment?)]]
-                      , (normalize [identifiable [a identifiable {}]])
-                      [1 [(a :guard dispatchable?)]]
-                      , (normalize [identifiable [s a {}]])
-                      [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                      , (normalize [identifiable [a b {}]])
-                      [2 [(a :guard as-segment?) (b :guard coll?)]]
-                      , (normalize [identifiable [a identifiable b]])
-                      [2 [(a :guard dispatchable?) (b :guard coll?)]]
-                      , (normalize [identifiable [s a b]])
-                      [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard coll?)]]
-                      ,[identifiable [a b (into (empty c) (map normalize c))]]
-                      :else (throw (ex-info "Unrecognized route format" {::route route}))))))))))
+       (let [[identifiable v] route
+             s (name identifiable)]
+         (cond
+           (vector? v) (m/match [(count v) v]
+                                [0 []]
+                                , (normalize [identifiable [s identifiable {}]])
+                                [1 [(a :guard coll?)]]
+                                , (normalize [identifiable [s identifiable a]])
+                                [1 [(a :guard as-segment?)]]
+                                , (normalize [identifiable [a identifiable {}]])
+                                [1 [(a :guard dispatchable?)]]
+                                , (normalize [identifiable [s a {}]])
+                                [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
+                                , (normalize [identifiable [a b {}]])
+                                [2 [(a :guard as-segment?) (b :guard coll?)]]
+                                , (normalize [identifiable [a identifiable b]])
+                                [2 [(a :guard dispatchable?) (b :guard coll?)]]
+                                , (normalize [identifiable [s a b]])
+                                [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard coll?)]]
+                                ,[identifiable [a b (into (empty c) (map normalize c))]]
+                                :else (throw (ex-info "Unrecognized route format" {::route route})))
+           (associative? v) (normalize [identifiable [s identifiable v]])
+           (fn? v) (normalize [identifiable [s v {}]])
+           :else (normalize [identifiable [v identifiable {}]])))))))
 
 (defn router
   [route]
