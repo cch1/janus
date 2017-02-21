@@ -1,7 +1,8 @@
 (ns janus.route
   (:import #?(:cljs goog.Uri
               :clj [java.net URI URLDecoder URLEncoder]))
-  (:require [clojure.string]
+  (:require [clojure.string :as string]
+            [clojure.zip :as z]
             [clojure.core.match :as m]))
 
 (defn- url-encode
@@ -30,14 +31,14 @@
      (build [this options]))
 
 (extend-protocol AsSegment
-  nil ; constant, invertible ; Used by the root route
-  (match [this segment] (when (= "" segment) nil))
-  (build [this _] "")
+  nil ; placeholder -used by the root route
+  (match [this segment])
+  (build [this _])
   String ; constant, invertible
   (match [this segment] (when (= this segment) this))
   (build [this _] this)
   clojure.lang.Keyword ; constant, invertible
-  (match [this segment] (when (= (name this) segment) this))
+  (match [this segment] (when (= (name this) segment) segment))
   (build [this _] (name this))
   java.lang.Boolean ; invertible
   (match [this segment] segment)
@@ -52,7 +53,6 @@
   (match [this segment] (this segment))
   (build [this args] (this args)))
 
-
 (let [named? (partial instance? clojure.lang.Named)
       as-segment? (partial satisfies? AsSegment)
       dispatchable? (fn [x] (or (fn? x) (var? x) (named? x)))]
@@ -64,9 +64,9 @@
        (dispatchable? dispatchable)
        (every? valid-route? routes)))
 
-  (defn normalize
+  (defn- normalize
     "Yields `route => [identifiable [as-segment dispatchable routes]]`"
-    ([identifiable dispatchable route] (normalize [identifiable [nil dispatchable route]]))
+    ([identifiable dispatchable route] (normalize [identifiable [true dispatchable route]]))
     ([dispatchable route] (normalize [::root [nil dispatchable route]]))
     ([] (normalize [::root [nil ::root {}]])) ; degenerate route table, implicit root
     ([route]
@@ -96,53 +96,62 @@
                       ,[identifiable [a b (into (empty c) (map normalize c))]]
                       :else (throw (ex-info "Unrecognized route format" {::route route}))))))))))
 
-(defn- match-segments
-  [routes [segment & remaining-segments]]
-  (if segment
-    (some (fn [[identifiable [as-segment _ subroutes]]]
-            (when-let [route-params (match as-segment segment)]
-              (when-let [children (match-segments subroutes remaining-segments)]
-                (cons [identifiable route-params] children))))
-          routes)
-    ()))
+(defprotocol Routable
+  (root [this] "Return a new routable located at the root")
+  (identify [this path] "Return a new routable based on the given path (URI)")
+  (generate [this params] "Return a new routable based on the given path parameters"))
 
-(defn identify*
-  "Given a route definition data structure and a URI as a string, return the
-   abbreviated segment sequence, if any, that completely matches the path."
-  [route uri-string]
-  (let [path (normalize-uri uri-string)
-        segments (if (= "/" path) [] (map url-decode (rest (clojure.string/split path #"/"))))
-        [_ [_ _ child-routes]] route]
-    (match-segments child-routes segments)))
+(defprotocol Routed
+  (path [this] "Return the path of the route as a string")
+  (identifiers [this] "Return the route as a sequence of segment identifiers")
+  (parameters [this] "Return map of segment identifiers to route parameters")
+  (node [this] "Return the resulting route leaf node"))
 
-(defn identify
-  "Given a route definition data structure and a URI as a string, return the
-   segment sequence, if any, that completely matches the path."
-  [route uri-string]
-  (when-let [matched (identify* route uri-string)]
-    (cons [(first route) nil] matched)))
+(defn- r-zip
+  "Return a zipper for a normalized route data structure"
+  [route]
+  (z/zipper (constantly true)
+            (fn [node] (-> node last last seq))
+            (fn [node children] (assoc-in node [1 2] (into {} children)))
+            route))
 
 (defn- normalize-target [target] (if (vector? target) target [target nil]))
 
-(defn- build-segments
-  [routes [target & targets]]
-  (if-let [[target params] (when target (normalize-target target))]
-    (or (some (fn [[identifiable [as-segment _ subroutes]]]
-               (when (= identifiable target)
-                 (let [segment (url-encode (build as-segment params))]
-                   (cons segment (build-segments subroutes targets)))))
-             routes)
-       (throw (ex-info "Can't build route" {:target target :routes routes})))
-    ()))
+(defrecord Router [zipper params]
+  Routable
+  (root [this] (Router. (z/root zipper) []))
+  (identify [this p]
+    (if-let [segments (seq (map url-decode (rest (string/split p #"/"))))]
+      (loop [rz (z/down zipper) segments segments params params]
+        (when rz
+          (let [[_ [as-segment _ _]] (z/node rz)]
+            (if-let [p (match as-segment (first segments))]
+              (if-let [remaining-segments (seq (rest segments))]
+                (recur (z/down rz) remaining-segments (conj params p))
+                (Router. rz (conj params p)))
+              (recur (z/right rz) segments params)))))
+      this))
+  (generate [this ps]
+    (if-let [ps (seq (map normalize-target ps))]
+      (loop [rz (z/down zipper) [[i p] & remaining-ps :as ps] ps params params]
+        (when rz
+          (let [[identifier [as-segment _ _]] (z/node rz)]
+            (if-let [p' (when (= identifier i) (build as-segment p))]
+              (if (seq remaining-ps)
+                (recur (z/down rz) remaining-ps (conj params p))
+                (Router. rz (conj params p)))
+              (recur (z/right rz) ps params)))))
+      this))
+  Routed
+  (path [this] (let [nodes (concat (rest (z/path zipper)) (list (z/node zipper)))
+                     segments (map (fn [[identifiable [as-segment _ _]] p]
+                                     (url-encode (build as-segment p)))
+                                   nodes params)]
+                 (str "/" (string/join "/" segments))))
+  (identifiers [this] (map first (concat (z/path zipper) (list (z/node zipper)))))
+  (parameters [this] (map vector (rest (identifiers this)) params))
+  (node [this] (z/node zipper)))
 
-(defn generate*
-  [route targets]
-  (let [[_ [_ _ routes]] route
-        segments (build-segments routes targets)]
-    (str "/" (clojure.string/join "/" segments))))
-
-(defn generate
-  [route targets]
-  (let [[target & targets] targets]
-    (assert (= (first route) (-> target normalize-target first)) "Root target does not match")
-    (generate* route targets)))
+(defn router
+  [route]
+  (Router. (-> route normalize r-zip) []))

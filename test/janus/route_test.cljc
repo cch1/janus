@@ -1,181 +1,135 @@
 (ns janus.route-test
-  (:require
-   [janus.route :refer :all]
-   #?(:clj  [clojure.test :refer :all]
-      :cljs [cljs.test :refer-macros [deftest is testing]])))
+  (:require [janus.route :refer :all]
+            #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :refer-macros [deftest is testing]])
+            [clojure.string :as string]))
 
-(deftest normalization
-  (is (= [:janus.route/root [nil :root {}]] (normalize :root)))
-  (is (let [re #"."] ; need one instance for equality comparisons...
-        (= (normalize [:root [nil {'a ["a"
-                                       [[:b ["b" identity]]
-                                        ['c "c"]
-                                        [:d [re
-                                             {:e "e"
-                                              :f "f|F"}]]]]}]])
-           [:root [nil :root {'a ["a" 'a
-                                  [[:b ["b" identity {}]]
-                                   ['c ["c" 'c {}]]
-                                   [:d [re :d {:e ["e" :e {}]
-                                               :f ["f|F" :f {}]}]]]]}]])))
-  (is (= (normalize [:root
-                     [nil :root {'a [["a" "a"] 'a {}]}]])
-         [:root
-          [nil :root {'a [["a" "a"] 'a {}]}]])))
+(deftest router-construction
+  (is (instance? janus.route.Router (router :r))))
 
 (deftest identify-patterns
   (testing "nil"
-    (is (= [[:R nil]] (identify [:R [nil :R {}]] "/"))))
+    (let [router (-> [:R [nil :R {}]] router (identify "/"))]
+      (is (= [:R] (identifiers router)))
+      (is (= () (parameters router)))
+      (is (= "/" (path router)))))
   (testing "string"
-    (is (= [[:R nil] ['a "a"]] (identify [:R [nil :R {'a ["a" 'a {}]}]] "/a"))))
+    (let [router (-> [:R [nil :R {'a ["a" 'a {}]}]] router (identify "/a"))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a "a"]] (parameters router)))
+      (is (= "/a" (path router)))))
   (testing "keyword"
-    (is (= [[:R nil] ['a :a]] (identify [:R [nil :R {'a [:a 'a {}]}]] "/a"))))
+    (let [router (-> [:R [nil :R {'a [:a 'a {}]}]] router (identify "/a"))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a "a"]] (parameters router)))
+      (is (= "/a" (path router)))))
   (testing "boolean"
-    (is (= [[:R nil] ['a "a"]] (identify [:R [nil :R {'a [true 'a {}]}]] "/a"))))
+    (let [router (-> [:R [nil :R {'a [true 'a {}]}]] router (identify "/a"))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a "a"]] (parameters router)))
+      (is (= "/a" (path router)))))
   (testing "regex without capture groups"
-    (is (= [[:R nil] ['a "867-5309"]] (identify [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] "/867-5309"))))
+    (let [router (-> [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] router (identify "/867-5309"))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a "867-5309"]] (parameters router)))
+      (is (= "/867-5309" (path router)))))
   (testing "regex with capture groups"
-    (is (= [[:R nil] ['a ["54.40" "54" "40"]]] (identify [:R [nil :R {'a [#"(\d+).(\d+)" 'a {}]}]] "/54.40"))))
+    (let [router (-> [:R [nil :R {'a [#"(\d+).(\d+)" 'a {}]}]] router (identify "/54.40"))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a ["54.40" "54" "40"]]] (parameters router)))
+      (is (= "/54.40" (path router)))))
   (testing "regex partial match"
-    (is (nil? (identify [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] "/867-530"))))
+    (let [router (-> [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] router (identify "/867-530"))]
+      (is (nil? router))))
   (testing "vector"
-    (is (= [[:R nil] [:s "foo"]] (identify [:R [nil :R {:s [["foo" identity] :s {}]}]] "/foo"))))
+    (let [router (-> [:R [nil :R {:s [["foo" identity] :s {}]}]] router (identify "/foo"))]
+      (is (= [:R :s] (identifiers router)))
+      (is (= [[:s "foo"]] (parameters router)))
+      (is (= "/foo" (path router)))))
   (testing "function"
-    (is (= [[:R nil] [:even 12]]
-           (identify [:R [nil :R {:even [#(when-let [i (Integer/parseInt %)] (when (even? i) i)) :even {}]}]] "/12")))))
+    (let [f (fn [x] (if (string? x) ; good for multimethod
+                     (when-let [i (Integer/parseInt x)] (when (even? i) i))
+                     (do (assert (even? x)) (str x))))
+          router (-> [:R [nil :R {:even [f :even {}]}]] router (identify "/12"))]
+      (is (= [:R :even ] (identifiers router)))
+      (is (= [[:even 12]] (parameters router)))
+      (is (= "/12" (path router))))))
 
 (deftest generate-patterns
   (testing "nil"
-    (is (= "/" (generate [:R [nil :R {}]] [:R]))))
+    (let [router (-> [:R [nil :R {}]] router (generate []))]
+      (is (= [:R] (identifiers router)))
+      (is (= [] (parameters router)))
+      (is (= "/" (path router)))))
   (testing "string"
-    (is (= "/a" (generate [:R [nil :R {'a ["a" 'a {}]}]] [:R 'a]))))
+    (let [router (-> [:R [nil :R {'a ["a" 'a {}]}]] router (generate ['a]))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a nil]] (parameters router)))
+      (is (= "/a" (path router)))))
   (testing "keyword"
-    (is (= "/a" (generate [:R [nil :R {'a [:a 'a {}]}]] [:R 'a]))))
+    (let [router (-> [:R [nil :R {'a [:a 'a {}]}]] router (generate ['a]))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a nil]] (parameters router)))
+      (is (= "/a" (path router)))))
   (testing "boolean"
-    (is (= "/foo" (generate [:R [nil :R {'a [true 'a {}]}]] [:R ['a "foo"]]))))
-  (testing "regex"
-    (is (= "/867-5309" (generate [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] [:R ['a "867-5309"]]))))
+    (let [router (-> [:R [nil :R {'a [true 'a {}]}]] router (generate [['a "a"]]))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a "a"]] (parameters router)))
+      (is (= "/a" (path router)))))
+  (testing "regex without capture groups"
+    (let [router (-> [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] router (generate [['a "867-5309"]]))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a "867-5309"]] (parameters router)))
+      (is (= "/867-5309" (path router)))))
+  (testing "regex with capture groups"
+    (let [router (-> [:R [nil :R {'a [#"(\d+).(\d+)" 'a {}]}]] router (generate [['a ["54.40" "54" "40"]]]))]
+      (is (= [:R 'a] (identifiers router)))
+      (is (= [['a ["54.40" "54" "40"]]] (parameters router)))
+      (is (= "/54.40" (path router)))))
   (testing "vector"
-    (is (= "/foo" (generate [:R [nil :R {:s [["foo" identity] :s {}]}]] [:R [:s "foo"]]))))
+    (let [router (-> [:R [nil :R {:s [["foo" identity] :s {}]}]] router (generate [[:s "foo"]]))]
+      (is (= [:R :s] (identifiers router)))
+      (is (= [[:s "foo"]] (parameters router)))
+      (is (= "/foo" (path router)))))
   (testing "function"
-    (is (=  "/12" (generate [:R [nil :R {:even [#(str %) :even {}]}]] [:R [:even 12]])))))
+    (let [f (fn [x] (if (string? x) ; good for multimethod
+                     (when-let [i (Integer/parseInt x)] (when (even? i) i))
+                     (do (assert (even? x)) (str x))))
+          router (-> [:R [nil :R {:even [f :even {}]}]] router (generate [[:even 12]]))]
+      (is (= [:R :even] (identifiers router)))
+      (is (= [[:even 12]] (parameters router)))
+      (is (= "/12" (path router))))))
 
-(deftest invertible
-  (testing "nil"
-    (let [routes [:root [nil :root {}]]
-          route "/"]
-      (is (= route (generate routes (identify routes route))))))
-  (testing "string"
-    (let [routes [:root [nil :root {:s ["test" :s {}]}]]
-          route "/test"]
-      (is (= route (generate routes (identify routes route))))))
-  (testing "keyword"
-    (let [routes [:root [nil :root {:test [:test :test {}]}]]
-          route "/test"]
-      (is (= route (generate routes (identify routes route))))))
-  (testing "boolean"
-    (let [routes [:root [nil :root {:b [true :b {}]}]]
-          route "/test"]
-      (is (= route (generate routes (identify routes route))))))
-  (testing "regex"
-    (let [routes [:root [nil :root {:test [#"\d{3}-\d{4}" :test {}]}]]
-          route "/867-5309"]
-      (is (= route (generate routes (identify routes route))))))
-  (testing "composite"
-    (let [routes [:root [nil :root {:c [[#"(\d{3})-(\d{4})" (comp (partial apply format "%s-%s") rest)] :c {}]}]]
-          route "/867-5309"]
-      (is (= route (generate routes (identify routes route))))))
-  (testing "multi-level"
-    (let [routes [:root [nil :root
-                         {:s ["s" :s
-                              {:k ["k" :k
-                                   {:c [[#"(\d{3})-(\d{4})" (comp (partial apply format "%s-%s") rest )] :c {}]}]}]}]]
-          route "/s/k/867-5309"]
-      (is (= route (generate routes (identify routes route)))))))
-
-(def $rs (normalize [:root
-                     {'a ["a" 'a
-                          {:b "b"
-                           'c ["c" {}]
-                           :d ["d"
-                                {:e ["e" {}]
-                                 :f ["f|F" :f]}]}]}]))
+(def $rs (let [f (fn [x] (if (string? x) ; good for multimethod
+                          ({"CA" :CA "CANADA" :CA "UNITED STATES" :US "USA" :US "US" :US} (string/upper-case x))
+                          ({:US "United States" :CA "Canada"} x)))]
+           [:root
+            [nil :root
+             {'a ["a" 'a
+                  {:b "b"
+                   'c ["c" {}]
+                   :d [true
+                       {:e ["e" {}]
+                        :f ["f|F" :f
+                            {:g [#"(\d+).(\d+)" :g
+                                 {:h [[#(when (= (seq %) (reverse %)) %)
+                                       #(do (assert (= (seq %) (reverse %))) %)] :h
+                                      {:i [f :i
+                                           {}]}]}]}]}]}]}]]))
 
 (deftest identify-structure
   (testing "root"
-    (is (= [[:root nil]] (identify $rs "/"))))
-  (testing "top"
-    (is (= [[:root nil] ['a "a"]] (identify $rs "/a"))))
-  (testing "interior"
-    (is (= [[:root nil] ['a "a"] [:d "d"]] (identify $rs "/a/d"))))
-  (testing "leaf"
-    (is (= [[:root nil] ['a "a"] [:b "b"]] (identify $rs "/a/b"))))
-  (testing "trailing slashes"
-    (is (= [[:root nil] ['a "a"]] (identify $rs "/a/"))))
-  (testing "no route"
-    (is (nil? (identify $rs "/a/nothinghere")))
-    (is (nil? (identify $rs "/a/d/e/Z")))))
-
-(deftest generate-structure
-  (testing "root"
-    (is (= "/" (generate $rs [[:root nil]]))))
-  (testing "top"
-    (is (= "/a" (generate $rs [[:root nil] ['a "a"]]))))
-  (testing "interior"
-    (is (= "/a/d" (generate $rs [[:root nil] ['a "a"] [:d "d"]]))))
-  (testing "leaf"
-    (is (= "/a/b" (generate $rs [[:root nil] ['a "a"] [:b "b"]]))))
-  (testing "no route"
-    (is (thrown? java.lang.Exception (generate $rs [:root 'missing])))))
+    (let [r (router $rs)
+          uri "/a/whatever/f%7CF/54.40/868/United%20States"
+          params [['a "a"] [:d "whatever"] [:f "f|F"] [:g ["54.40" "54" "40"]] [:h "868"] [:i :CA]]]
+      (is (= uri (path (generate r (parameters (identify r uri))))))
+      (is (= params (parameters (identify r (path (generate r params)))))))))
 
 (deftest url-encoded
   (testing "decode"
-    (is (= [[:R nil] ['top "a|b"]] (identify [:R [nil :R {'top [true 'top {}]}]] "/a%7Cb")))
-    (is (= [[:R nil] ['top "a|b"]] (identify [:R [nil :R {'top [true 'top {}]}]] "/a%7cb"))))
+    (let [router (-> [:R [nil :R {'top [true 'top {}]}]] router)]
+      (is (= [['top "a|b"]] (parameters (identify router "/a%7Cb"))))
+      (is (= [['top "a|b"]] (parameters (identify router "/a%7Cb"))))))
   (testing "encode"
-    (is (#{"/a%7Cb" "/a%7cb"} (generate [:R [nil :R {'top [true 'top {}]}]] [:R ['top "a|b"]])))))
-
-(deftest abbreviated
-  (testing "identify"
-    (testing "nil"
-      (is (= [] (identify* [:R [{}]] "/"))))
-    (testing "string"
-      (is (= [['a "a"]] (identify* [:R [nil :R {'a ["a" 'a {}]}]] "/a")))))
-  (testing "generate"
-    (testing "nil"
-      (is (= "/" (generate* [:R [{}]] []))))
-    (testing "string"
-      (is (= "/a" (generate* [:R [nil :R {'a ["a" 'a {}]}]] ['a]))))))
-
-(deftest abbreviated-invertible
-  (testing "nil"
-    (let [routes [:root [nil :root {}]]
-          route "/"]
-      (is (= route (generate* routes (identify* routes route))))))
-  (testing "string"
-    (let [routes [:root [nil :root {:s ["test" :s {}]}]]
-          route "/test"]
-      (is (= route (generate* routes (identify* routes route))))))
-  (testing "keyword"
-    (let [routes [:root [nil :root {:test [:test :test {}]}]]
-          route "/test"]
-      (is (= route (generate* routes (identify* routes route))))))
-  (testing "boolean"
-    (let [routes [:root [nil :root {:b [true :b {}]}]]
-          route "/test"]
-      (is (= route (generate* routes (identify* routes route))))))
-  (testing "regex"
-    (let [routes [:root [nil :root {:test [#"\d{3}-\d{4}" :test {}]}]]
-          route "/867-5309"]
-      (is (= route (generate* routes (identify* routes route))))))
-  (testing "composite"
-    (let [routes [:root [nil :root {:c [[#"(\d{3})-(\d{4})" (comp (partial apply format "%s-%s") rest)] :c {}]}]]
-          route "/867-5309"]
-      (is (= route (generate* routes (identify* routes route))))))
-  (testing "multi-level"
-    (let [routes [:root [nil :root
-                         {:s ["s" :s
-                              {:k [:k :k
-                                   {:c [[#"(\d{3})-(\d{4})" (comp (partial apply format "%s-%s") rest )] :c {}]}]}]}]]
-          route "/s/k/867-5309"]
-      (is (= route (generate* routes (identify* routes route)))))))
+    (let [router (-> [:R [nil :R {'top ["a|b" 'top {}]}]] router)]
+      (is (#{"/a%7Cb" "/a%7cb"} (path (generate router ['top])))))))

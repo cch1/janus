@@ -1,5 +1,5 @@
 (ns janus.ring
-  (:require [janus.route :refer [identify normalize]]))
+  (:require [janus.route :as route]))
 
 (defprotocol Dispatchable
   (dispatch [this request args]))
@@ -13,31 +13,35 @@
     ((deref this) request))
   clojure.lang.Keyword
   (dispatch [this request args]
-    ((-> args first (get this)) request))
+    (let [f (-> args first (get this))]
+      (assert f (format "No dispatch function found for keyword %s" this))
+      (f request)))
   clojure.lang.Symbol
   (dispatch [this request args]
-    ((-> args first (get this)) request))
-  java.lang.String
+    (let [f (-> args first (get this))]
+      (assert f (format "No dispatch function found for symbol %s" this))
+      (f request)))
+  janus.route.Router
   (dispatch [this request args]
-    ((-> args first (get this)) request)))
+    (let [[_ [_ dispatchable _]] (route/node this)]
+      (dispatch dispatchable request args))))
 
 (defn make-dispatcher
   [& args]
   (fn dispatcher
-    [{route ::route :as request}]
-    (let [handler (-> route last first)]
-      (dispatch handler request args))))
+    [{router ::router :as request}]
+    (dispatch router request args)))
 
 (defn make-identifier
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"
   [handler routes]
   {:pre [routes]}
-  (let [routes (normalize routes)]
+  (let [root (route/router routes)]
     (fn route-identifier
       [{:keys [uri path-info] :as req}]
-      (let [route (identify routes (or path-info uri))]
-        (let [route-params (into {} (filter (fn [[k v]] (keyword? k))) route)]
+      (let [r (route/identify root (or path-info uri))]
+        (let [route-params (into {} (filter (fn [[k v]] (keyword? k))) (route/parameters r))]
           (handler (-> req
                       (update :params merge route-params)
                       (assoc :route-params route-params)
-                      (assoc ::route route))))))))
+                      (assoc ::router r))))))))
