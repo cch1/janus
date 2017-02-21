@@ -81,8 +81,8 @@
 (defrecord Router [zipper params]
   Routable
   (root [this] (Router. (z/root zipper) []))
-  (identify [this p]
-    (if-let [segments (seq (map url-decode (rest (string/split p #"/"))))]
+  (identify [this uri]
+    (if-let [segments (seq (map url-decode (rest (string/split (normalize-uri uri) #"/"))))]
       (loop [rz (z/down zipper) segments segments params params]
         (when rz
           (let [[_ [as-segment _ _]] (z/node rz)]
