@@ -6,6 +6,7 @@ Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/l
 ## [Unreleased]
 ### Added
 ### Changed
+- Ring identifier middleware takes an instance of janus.route.Router, not routes.
 ### Removed
 ### Fixed
 ## 0.2.0 - 2017-02-21

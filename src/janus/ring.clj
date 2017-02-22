@@ -34,14 +34,13 @@
 
 (defn make-identifier
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"
-  [handler routes]
-  {:pre [routes]}
-  (let [root (route/router routes)]
-    (fn route-identifier
-      [{:keys [uri path-info] :as req}]
-      (let [r (route/identify root (or path-info uri))]
-        (let [route-params (into {} (filter (fn [[k v]] (keyword? k))) (route/parameters r))]
-          (handler (-> req
-                      (update :params merge route-params)
-                      (assoc :route-params route-params)
-                      (assoc ::router r))))))))
+  [handler router]
+  {:pre [(instance? janus.route.Router router)]}
+  (fn route-identifier
+    [{:keys [uri path-info] :as req}]
+    (let [r (route/identify router (or path-info uri))
+          route-params (when r (into {} (filter (fn [[k v]] (keyword? k))) (route/parameters r)))]
+      (handler (-> req
+                  (update :params merge route-params)
+                  (assoc :route-params route-params)
+                  (assoc ::router r))))))
