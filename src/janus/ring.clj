@@ -5,6 +5,8 @@
   (dispatch [this request args]))
 
 (extend-protocol Dispatchable
+  nil
+  (dispatch [this request args] (-> args first (get this)))
   clojure.lang.Fn
   (dispatch [this request args]
     (this request))
@@ -28,9 +30,10 @@
 
 (defn make-dispatcher
   [& args]
-  (fn dispatcher
-    [{router ::router :as request}]
-    (dispatch router request args)))
+  (let [args (or args [{nil {:status 404 :body "Not Found"}}])]
+    (fn dispatcher
+      [{router ::router :as request}]
+      (dispatch router request args))))
 
 (defn make-identifier
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"

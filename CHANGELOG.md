@@ -5,6 +5,7 @@ Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/l
 
 ## [Unreleased]
 ### Added
+- Unidentifiable routes are properly handled and ultimately result in a Ring 404 Not-Found response.
 ### Changed
 - Ring identifier middleware takes an instance of janus.route.Router, not routes.
 ### Removed
