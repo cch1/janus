@@ -155,7 +155,7 @@
                                 ,[identifiable [a b (into (empty c) (map normalize c))]]
                                 :else (throw (ex-info "Unrecognized route format" {::route route})))
            (associative? v) (normalize [identifiable [s identifiable v]])
-           (fn? v) (normalize [identifiable [s v {}]])
+           (or (var? v) (fn? v)) (normalize [identifiable [s v {}]])
            :else (normalize [identifiable [v identifiable {}]])))))))
 
 (defn router
