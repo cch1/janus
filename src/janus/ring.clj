@@ -6,34 +6,35 @@
 
 (extend-protocol Dispatchable
   nil
-  (dispatch [this request args] (-> args first (get this)))
+  (dispatch [this request dispatch-table] (get dispatch-table this))
   clojure.lang.Fn
-  (dispatch [this request args]
+  (dispatch [this request _]
     (this request))
   clojure.lang.Var
-  (dispatch [this request args]
+  (dispatch [this request _]
     ((deref this) request))
   clojure.lang.Keyword
-  (dispatch [this request args]
-    (let [f (-> args first (get this))]
+  (dispatch [this request dispatch-table]
+    (let [f (get dispatch-table this)]
       (assert f (format "No dispatch function found for keyword %s" this))
       (f request)))
   clojure.lang.Symbol
-  (dispatch [this request args]
-    (let [f (-> args first (get this))]
+  (dispatch [this request dispatch-table]
+    (let [f (get dispatch-table this)]
       (assert f (format "No dispatch function found for symbol %s" this))
       (f request)))
   janus.route.Router
-  (dispatch [this request args]
+  (dispatch [this request dispatch-table]
     (let [[_ [_ dispatchable _]] (route/node this)]
-      (dispatch dispatchable request args))))
+      (dispatch dispatchable request dispatch-table))))
 
 (defn make-dispatcher
-  [& args]
-  (let [args (or args [{nil {:status 404 :body "Not Found"}}])]
-    (fn dispatcher
-      [{router ::router :as request}]
-      (dispatch router request args))))
+  ([] (make-dispatcher {}))
+  ([dispatch-table]
+   (let [dispatch-table (merge {nil {:status 404 :body "Not Found"}} dispatch-table)]
+     (fn dispatcher
+       [{router ::router :as request}]
+       (dispatch router request dispatch-table)))))
 
 (defn make-identifier
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"
