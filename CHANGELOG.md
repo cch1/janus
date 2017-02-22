@@ -5,9 +5,27 @@ Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/l
 
 ## [Unreleased]
 ### Added
+### Changed
+### Removed
+### Fixed
+## 0.4.0 - 2017-02-22
+### Added
+### Changed
+### Removed
+### Fixed
+- Assoc route params onto request at moment of dispatch, not earlier.
+- Treat vars like fns during route normalization.
+## 0.3.1 - 2017-02-22
+### Added
 - Unidentifiable routes are properly handled and ultimately result in a Ring 404 Not-Found response.
 ### Changed
 - Ring identifier middleware takes an instance of janus.route.Router, not routes.
+### Removed
+### Fixed
+## 0.3.0 - 2017-02-22
+### Added
+### Changed
+- Prioritize handlers fn in normalization
 ### Removed
 ### Fixed
 ## 0.2.0 - 2017-02-21
