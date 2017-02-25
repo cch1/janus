@@ -29,8 +29,10 @@
   (match [this segment])
   (build [this _])
   String ; constant, invertible
-  (match [this segment] (when (= this segment) this))
-  (build [this _] this)
+  (match [this segment] (when (= this segment) segment))
+  (build [this args] (if (sequential? args)
+                       (apply format this args)
+                       this))
   clojure.lang.Keyword ; constant, invertible
   (match [this segment] (when (= (name this) segment) segment))
   (build [this _] (name this))
@@ -38,8 +40,10 @@
   (match [this segment] segment)
   (build [this args] args)
   java.util.regex.Pattern ; invertible
-  (match [this segment] (re-matches this segment))
-  (build [this args] (if (vector? args) (first args) args))
+  (match [this segment] (when-let [m (re-matches this segment)]
+                          (cond (string? m) m
+                                (vector? m) (rest m))))
+  (build [this args] (if (sequential? args) (apply str args) args))
   clojure.lang.PersistentVector ; invertible when elements are inverses of each other
   (match [this segment] (match (first this) segment))
   (build [this args] (build (second this) args))
