@@ -34,9 +34,10 @@
    (let [dispatch-table (merge {nil {:status 404 :body "Not Found"}} dispatch-table)]
      (fn dispatcher
        [{router ::router :as request}]
-       (let [route-params (when router (into {} (filter (fn [[k v]] (keyword? k))) (route/parameters router)))
+       (let [route-params (into {} (when router (route/parameters router)))
              request (-> request
-                        (update :params merge route-params)
+                        (update :params merge (into {} (filter (fn [[k v]] (keyword? k)))
+                                                    route-params))
                         (assoc :route-params route-params))]
          (dispatch router request dispatch-table))))))
 
