@@ -130,7 +130,7 @@
 
 (defrecord Router [zipper params]
   Routable
-  (root [this] (Router. (z/root zipper) []))
+  (root [this] (Router. (r-zip (z/root zipper)) []))
   (parent [this] (Router. (z/up zipper) (butlast params)))
   (identify [this uri]
     (if-let [segments (seq (map url-decode (rest (string/split (normalize-uri uri) #"/"))))]

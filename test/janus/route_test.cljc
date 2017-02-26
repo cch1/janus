@@ -162,23 +162,25 @@
           (is (= uri (-> router (generate params) path)))
           (is (= params (-> router (identify uri) parameters)))))))
 
+;;; https://en.wikipedia.org/wiki/Exoplanet
 (def astronomy
-  [:root
-   [nil :root
+  [:universe
+   [nil :universe
     {:galaxies
-     {:galaxy [#"\w+"
+     {:galaxy [#"\w[\w\s]+"
                {:systems
-                {:system [#"\w+"
+                {:system [#"\w[\w\s]+"
                           {:planets
-                           {:planet [#"\w+"
+                           {:planet [#"\w[\w\s]+"
                                      {:moons
-                                      {:moon [#"\w+" {}]}}]}
+                                      {:moon [#"\w[\w\s]+" {}]}}]}
                            :comets
-                           {:comet [#"\w+"{}]}}]}}]}}]])
+                           {:comet [#"\w[\w\s]+" {}]}}]}}]}}]])
 
 (deftest motion
   (let [root (router astronomy)
-        earth (generate root [:galaxies [:galaxy "MilkyWay"]
+        earth (generate root [:galaxies [:galaxy "Milky Way"]
                               :systems [:system "Sol"]
                               :planets [:planet "Earth"]])]
-    (is (= "/galaxies/MilkyWay/systems/Sol/planets" (-> earth parent path)))))
+    (is (= "/galaxies/Milky%20Way/systems/Sol/planets" (-> earth parent path)))
+    (is (= root (-> earth janus.route/root)))))
