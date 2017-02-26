@@ -40,4 +40,5 @@
         (is (= ["/dX" {:d "dX"}] ((make-dispatcher) request)))))
     (testing "Unidentified route triggers not found response"
       (let [request (assoc request :janus.ring/router nil)]
-        (is (= {:status 404 :body "Not Found"} ((make-dispatcher) request)))))))
+        (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
+               ((make-dispatcher) request)))))))
