@@ -164,6 +164,16 @@
   (parameters [this] (map vector (rest (identifiers this)) params))
   (node [this] (z/node zipper)))
 
+#?(:clj
+   (defmethod clojure.core/print-method Router
+     [router ^java.io.Writer writer]
+     (.write writer (format "#<Router %s>" (path router))))
+   :cljs
+   (extend-protocol IPrintWithWriter
+     Router
+     (-pr-writer [this writer opts]
+       (-write writer (format "#<Router %s>" (path this))))))
+
 (defn router
   [route]
   (Router. (-> route normalize r-zip) []))
