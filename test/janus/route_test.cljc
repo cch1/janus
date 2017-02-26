@@ -178,9 +178,11 @@
                            {:comet [#"\w[\w\s]+" {}]}}]}}]}}]])
 
 (deftest motion
-  (let [root (router astronomy)
-        earth (generate root [:galaxies [:galaxy "Milky Way"]
-                              :systems [:system "Sol"]
-                              :planets [:planet "Earth"]])]
-    (is (= "/galaxies/Milky%20Way/systems/Sol/planets" (-> earth parent path)))
-    (is (= root (-> earth janus.route/root)))))
+  (let [universe (router astronomy)
+        sol (generate universe [:galaxies [:galaxy "Milky Way"]
+                                :systems [:system "Sol"]])
+        earth (generate sol [:planets [:planet "Earth"]])
+        venus (generate sol [:planets [:planet "Venus"]])]
+    (is (= sol (-> earth parent parent)))
+    (is (= universe (-> earth root)))
+    (is (= venus (-> earth parent (generate [[:planet "Venus"]]))))))
