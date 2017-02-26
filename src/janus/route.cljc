@@ -167,7 +167,7 @@
 #?(:clj
    (defmethod clojure.core/print-method Router
      [router ^java.io.Writer writer]
-     (.write writer (format "#<Router %s>" (path router))))
+     (.write writer (format "#<Router \"%s\">" (path router))))
    :cljs
    (extend-protocol IPrintWithWriter
      Router
