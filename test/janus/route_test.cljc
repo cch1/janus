@@ -161,3 +161,24 @@
               router (-> [:R [nil :R {'a [#"(a)(b)" 'a {}]}]] router)]
           (is (= uri (-> router (generate params) path)))
           (is (= params (-> router (identify uri) parameters)))))))
+
+(def astronomy
+  [:root
+   [nil :root
+    {:galaxies
+     {:galaxy [#"\w+"
+               {:systems
+                {:system [#"\w+"
+                          {:planets
+                           {:planet [#"\w+"
+                                     {:moons
+                                      {:moon [#"\w+" {}]}}]}
+                           :comets
+                           {:comet [#"\w+"{}]}}]}}]}}]])
+
+(deftest motion
+  (let [root (router astronomy)
+        earth (generate root [:galaxies [:galaxy "MilkyWay"]
+                              :systems [:system "Sol"]
+                              :planets [:planet "Earth"]])]
+    (is (= "/galaxies/MilkyWay/systems/Sol/planets" (-> earth parent path)))))

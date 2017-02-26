@@ -14,6 +14,7 @@
   "An abstraction for an entity located in the route tree that can process move instructions by
   returning a new instance"
   (root [this] "Return a new routable located at the root")
+  (parent [this] "Return a new routable located at the parent of this")
   (identify [this path] "Return a new routable based on the given path (URI)")
   (generate [this params] "Return a new routable based on the given path parameters"))
 
@@ -82,41 +83,6 @@
   #?(:clj (.getRawPath (.normalize (URI. uri)))
      :cljs (.getPath (goog.Uri. uri))))
 
-(defrecord Router [zipper params]
-  Routable
-  (root [this] (Router. (z/root zipper) []))
-  (identify [this uri]
-    (if-let [segments (seq (map url-decode (rest (string/split (normalize-uri uri) #"/"))))]
-      (loop [rz (z/down zipper) segments segments params params]
-        (when rz
-          (let [[_ [as-segment _ _]] (z/node rz)]
-            (if-let [p (match as-segment (first segments))]
-              (if-let [remaining-segments (seq (rest segments))]
-                (recur (z/down rz) remaining-segments (conj params p))
-                (Router. rz (conj params p)))
-              (recur (z/right rz) segments params)))))
-      this))
-  (generate [this ps]
-    (if-let [ps (seq (map normalize-target ps))]
-      (loop [rz (z/down zipper) [[i p] & remaining-ps :as ps] ps params params]
-        (when rz
-          (let [[identifier [as-segment _ _]] (z/node rz)]
-            (if-let [p' (when (= identifier i) (build as-segment p))]
-              (if (seq remaining-ps)
-                (recur (z/down rz) remaining-ps (conj params p))
-                (Router. rz (conj params p)))
-              (recur (z/right rz) ps params)))))
-      this))
-  Routed
-  (path [this] (let [nodes (concat (rest (z/path zipper)) (list (z/node zipper)))
-                     segments (map (fn [[identifiable [as-segment _ _]] p]
-                                     (url-encode (build as-segment p)))
-                                   nodes params)]
-                 (str "/" (string/join "/" segments))))
-  (identifiers [this] (map first (concat (z/path zipper) (list (z/node zipper)))))
-  (parameters [this] (map vector (rest (identifiers this)) params))
-  (node [this] (z/node zipper)))
-
 (let [named? (partial instance? clojure.lang.Named)
       as-segment? (partial satisfies? AsSegment)
       dispatchable? (fn [x] (or (fn? x) (var? x) (named? x)))]
@@ -161,6 +127,42 @@
            (associative? v) (normalize [identifiable [s identifiable v]])
            (or (var? v) (fn? v)) (normalize [identifiable [s v {}]])
            :else (normalize [identifiable [v identifiable {}]])))))))
+
+(defrecord Router [zipper params]
+  Routable
+  (root [this] (Router. (z/root zipper) []))
+  (parent [this] (Router. (z/up zipper) (butlast params)))
+  (identify [this uri]
+    (if-let [segments (seq (map url-decode (rest (string/split (normalize-uri uri) #"/"))))]
+      (loop [rz (z/down zipper) segments segments params params]
+        (when rz
+          (let [[_ [as-segment _ _]] (z/node rz)]
+            (if-let [p (match as-segment (first segments))]
+              (if-let [remaining-segments (seq (rest segments))]
+                (recur (z/down rz) remaining-segments (conj params p))
+                (Router. rz (conj params p)))
+              (recur (z/right rz) segments params)))))
+      this))
+  (generate [this ps]
+    (if-let [ps (seq (map normalize-target ps))]
+      (loop [rz (z/down zipper) [[i p] & remaining-ps :as ps] ps params params]
+        (when rz
+          (let [[identifier [as-segment _ _]] (z/node rz)]
+            (if-let [p' (when (= identifier i) (build as-segment p))]
+              (if (seq remaining-ps)
+                (recur (z/down rz) remaining-ps (conj params p))
+                (Router. rz (conj params p)))
+              (recur (z/right rz) ps params)))))
+      this))
+  Routed
+  (path [this] (let [nodes (concat (rest (z/path zipper)) (list (z/node zipper)))
+                     segments (map (fn [[identifiable [as-segment _ _]] p]
+                                     (url-encode (build as-segment p)))
+                                   nodes params)]
+                 (str "/" (string/join "/" segments))))
+  (identifiers [this] (map first (concat (z/path zipper) (list (z/node zipper)))))
+  (parameters [this] (map vector (rest (identifiers this)) params))
+  (node [this] (z/node zipper)))
 
 (defn router
   [route]
