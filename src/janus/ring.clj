@@ -31,7 +31,9 @@
 (defn make-dispatcher
   ([] (make-dispatcher {}))
   ([dispatch-table]
-   (let [dispatch-table (merge {nil {:status 404 :body "Not Found"}} dispatch-table)]
+   (let [dispatch-table (merge {nil {:status 404 :body "Not Found"
+                                     :headers {"Content-Type" "text/plain"}}}
+                               dispatch-table)]
      (fn dispatcher
        [{router ::router :as request}]
        (let [route-params (into {} (when router (route/parameters router)))

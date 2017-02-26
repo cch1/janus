@@ -5,9 +5,15 @@ Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/l
 
 ## [Unreleased]
 ### Added
+- Custom printing of Router type to suppress.
+- Add support for `parent` method in Routable protocol.
+- Add `Content-Type` header for 404/Not-Found response.
 ### Changed
+- Only merge route-params with keyword identifiers into `:params`
+- Adjust string and regex AsSegment behavior
 ### Removed
 ### Fixed
+- Fixed bug in `root` method of Router's implementation of Routable protocol.
 ## 0.4.0 - 2017-02-22
 ### Added
 ### Changed
