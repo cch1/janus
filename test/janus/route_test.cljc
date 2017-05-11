@@ -177,7 +177,7 @@
                            'comets
                            {:comet [#"\w[\w\s]+" {}]}}]}}]}}]])
 
-(deftest motion
+(deftest navigation
   (let [universe (router astronomy)
         sol (generate universe ['galaxies [:galaxy "Milky Way"]
                                 'systems [:system "Sol"]])
@@ -185,4 +185,5 @@
         venus (generate sol ['planets [:planet "Venus"]])]
     (is (= sol (-> earth parent parent)))
     (is (= universe (-> earth root)))
+    (is (nil? (parent universe)))
     (is (= venus (-> earth parent (generate [[:planet "Venus"]]))))))

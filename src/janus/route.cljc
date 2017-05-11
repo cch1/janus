@@ -131,7 +131,7 @@
 (defrecord Router [zipper params]
   Routable
   (root [this] (Router. (r-zip (z/root zipper)) []))
-  (parent [this] (Router. (z/up zipper) (vec (butlast params))))
+  (parent [this] (when-let [z (z/up zipper)] (Router. z (vec (butlast params)))))
   (identify [this uri]
     (if-let [segments (seq (map url-decode (rest (string/split (normalize-uri uri) #"/"))))]
       (loop [rz (z/down zipper) segments segments params params]
