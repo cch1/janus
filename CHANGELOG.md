@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file. This change
 Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
 
 ## [Unreleased]
+## 0.5.0 - 2017-02-26
 ### Added
 - Custom printing of Router type to suppress.
 - Add support for `parent` method in Routable protocol.
