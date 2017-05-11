@@ -164,25 +164,25 @@
 
 ;;; https://en.wikipedia.org/wiki/Exoplanet
 (def astronomy
-  [:universe
-   [nil :universe
-    {:galaxies
+  ['universe
+   [nil 'universe
+    {'galaxies
      {:galaxy [#"\w[\w\s]+"
-               {:systems
+               {'systems
                 {:system [#"\w[\w\s]+"
-                          {:planets
+                          {'planets
                            {:planet [#"\w[\w\s]+"
-                                     {:moons
+                                     {'moons
                                       {:moon [#"\w[\w\s]+" {}]}}]}
-                           :comets
+                           'comets
                            {:comet [#"\w[\w\s]+" {}]}}]}}]}}]])
 
 (deftest motion
   (let [universe (router astronomy)
-        sol (generate universe [:galaxies [:galaxy "Milky Way"]
-                                :systems [:system "Sol"]])
-        earth (generate sol [:planets [:planet "Earth"]])
-        venus (generate sol [:planets [:planet "Venus"]])]
+        sol (generate universe ['galaxies [:galaxy "Milky Way"]
+                                'systems [:system "Sol"]])
+        earth (generate sol ['planets [:planet "Earth"]])
+        venus (generate sol ['planets [:planet "Venus"]])]
     (is (= sol (-> earth parent parent)))
     (is (= universe (-> earth root)))
     (is (= venus (-> earth parent (generate [[:planet "Venus"]]))))))

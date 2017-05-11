@@ -20,9 +20,9 @@
 
 (defprotocol Routed
   "An abstraction for an entity located in the route tree that can describe its position"
-  (path [this] "Return the path of the route as a string")
+  (path [this] [this generalized?] "Return the path of the route as a string, optionally generalized")
   (identifiers [this] "Return the route as a sequence of segment identifiers")
-  (parameters [this] "Return map of segment identifiers to route parameters")
+  (parameters [this]  "Return map of segment identifiers to route parameters")
   (node [this] "Return the resulting route leaf node"))
 
 (extend-protocol AsSegment
@@ -155,11 +155,15 @@
               (recur (z/right rz) ps params)))))
       this))
   Routed
-  (path [this] (let [nodes (concat (rest (z/path zipper)) (list (z/node zipper)))
-                     segments (map (fn [[identifiable [as-segment _ _]] p]
-                                     (url-encode (build as-segment p)))
-                                   nodes params)]
-                 (str "/" (string/join "/" segments))))
+  (path [this] (path this false))
+  (path [this generalized?]
+    (let [nodes (rest (concat (z/path zipper) (list (z/node zipper))))
+          f (if generalized?
+              (comp first first vector)
+              (fn [[identifiable [as-segment _ _]] p]
+                (url-encode (build as-segment p))))
+          segments (map f nodes params)]
+      (str "/" (string/join "/" segments))))
   (identifiers [this] (map first (concat (z/path zipper) (list (z/node zipper)))))
   (parameters [this] (map vector (rest (identifiers this)) params))
   (node [this] (z/node zipper)))
