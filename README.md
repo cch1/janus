@@ -63,14 +63,15 @@ Only when the identification of route segments is not guaranteed to be unique do
 Routes are organized as a tree: there is one root route and all child routes have exactly one parent.
 
 The elements of a route are:
+
  * `identifiable` is any instance of `clojure.lang.Named`.  This includes keywords and symbols.  Keywords should be used when the matching of the route yields useful information.  Symbols should be used for "constant" routes.
  * `as-segment` is anything satisfying `janus.route.AsSegment`, which includes strings, keywords, regexes, functions and others.  The role of `as-segment` is twofold: to match inbound route segements and to generate outbound route segements.  The semantics of each are as follows:
 
- ** `javal.lang.String` matches itself only, generates itself always.
- ** `clojure.lang.Keyword` matches its name only, generates its name always.
- ** `java.util.regex.Pattern` FIXME: Document
- ** `clojure.lang.PersistentVector` FIXME: Document
- ** `clojure.lang.Fn` FIXME: Document
+  * `javal.lang.String` matches itself only, generates itself always.
+  * `clojure.lang.Keyword` matches its name only, generates its name always.
+  * `java.util.regex.Pattern` FIXME: Document
+  * `clojure.lang.PersistentVector` FIXME: Document
+  * `clojure.lang.Fn` FIXME: Document
 
  * `dispatchable` is anything satisfying `janus.route.Dispatchable`, which includes functions, vars and instances of `clojure.lang.Named`.  FIXME: Document better, why is protocol not enforced specifically during normalization?
  * `routes` is a recursive seqable collection of child routes.
@@ -81,10 +82,9 @@ While the canonical format for routes is useful for understanding the full capab
 
         [:root nil] => [:root [nil :root {}]]
         [:root] => [:root [nil :root {}]]
+ Of course suppressing the second element is not possible when using a map to represent a sequence of routes.
 
-  Of course suppressing the second element is not possible when using a map to represent a sequence of routes.
-
- 1. 
+ 1. If the second element of the route pair is missing components, they are either inferred from the identifier or default values are supplied.
 
 ## License
 
