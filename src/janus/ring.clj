@@ -35,19 +35,22 @@
                                      :headers {"Content-Type" "text/plain"}}}
                                dispatch-table)]
      (fn dispatcher
-       [{router ::router :as request}]
-       (let [route-params (into {} (when router (route/parameters router)))
-             request (-> request
-                        (update :params merge (into {} (filter (fn [[k v]] (keyword? k)))
-                                                    route-params))
-                        (assoc :route-params route-params))]
+       [{:keys [route-params params] router ::router :as request}]
+       (let [request (if (and params route-params)
+                       (update request :params merge (into {} (filter (fn [[k v]] (keyword? k)))
+                                                           route-params))
+                       request)]
          (dispatch router request dispatch-table))))))
 
-(defn make-identifier
+(defn wrap-identify
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"
   [handler router]
   {:pre [(instance? janus.route.Router router)]}
-  (fn route-identifier
+  (fn identifier
     [{:keys [uri path-info] :as req}]
-    (let [r (route/identify router (or path-info uri))]
+    (let [r (route/identify router (or path-info uri))
+          route-params (when r (into {} (route/parameters r)))
+          req (if route-params (assoc req :route-params route-params) req)]
       (handler (assoc req ::router r)))))
+
+(def ^:deprecated make-identifier wrap-identify)
