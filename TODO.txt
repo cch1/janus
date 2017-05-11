@@ -1,0 +1,5 @@
+Support async ring https://www.booleanknot.com/blog/2016/07/15/asynchronous-ring.html
+Use edited zippers instead of separate params attribute of Router
+Consider combining Routable and Routed -what's the point?
+Consider either supporting symbols AsSegment or removing support for Keywords -what's the point?
+Do we really need nil AsSegment?
