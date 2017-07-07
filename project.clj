@@ -11,4 +11,4 @@
   :min-lein-version "2.5.2"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.match "0.2.2"]]
-  :profiles {:dev {:dependencies [[ring/ring-mock "0.3.0"]]}})
+  :profiles {:dev {:dependencies [[ring/ring-mock "0.3.1"]]}})
