@@ -23,7 +23,7 @@ These are the core functions of a "pure" routing engine and they should be power
  1. The route abstraction handles encoding and destructuring transparently; it models the URI
     as a sequence of URL-decoded string segments.
  1. Route matching is decomplected from handler dispatching per the Ring model.
- 1. For all but the most complex routes, pure data represents the entire route definition.
+ 1. For all but the most complex routes, pure data can represent the entire route definition.
  1. Forward (generation) and backward (identification) routing are inverses of each other.
  1. Protocols are used for segment matching and segment generation.
  1. Dispatching is based on route matching only.  There is no support for dispatching based on other attributes of an HTTP request, such as method.  Other libraries, such as [liberator](https://github.com/clojure-liberator/liberator), do an excellent job of managing HTTP method-based processing _after_ routing.
@@ -48,10 +48,10 @@ The canonical format for a route is a recursive sequence of two elements, the se
 
 The outer sequence can be viewed as a pair, and is satisfied by a Clojure map entry.  In fact, maps are the preferred way of representing a collection of routes:
 
-    {identifiable1 [as-segment1 dispatchable1 routes1
-     identifiable2 [as-segment2 dispatchable2 routes2
+    {identifiable1 [as-segment1 dispatchable1 routes1]
+     identifiable2 [as-segment2 dispatchable2 routes2]
 	 ...
-     identifiableN [as-segmentN dispatchableN routesN}
+     identifiableN [as-segmentN dispatchableN routesN]}
 
 Only when the identification of route segments is not guaranteed to be unique does the order of routes become meaningful.  At that point, routes can be represented by a sequence of pairs:
 
