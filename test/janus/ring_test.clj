@@ -4,6 +4,18 @@
             [ring.mock.request :as mock]
             [clojure.test :refer :all]))
 
+(deftest handle-invalid-uri
+  (let [handler identity
+        ;; request (mock/request :get "/[")
+        request {:protocol "HTTP/1.1" :server-port 80 :server-name "localhost" :remote-addr "localhost"
+                 :uri "/["
+                 :scheme :http :request-method :get :headers {"host" "localhost"}}]
+    (testing "Invalid URI returns response with status 400"
+      (let [routes [:R {:a "foo"}]
+            handler (wrap-identify handler (janus.route/router routes))
+            response (handler request)]
+        (is (= 400 (response :status)))))))
+
 (deftest add-route-identifier
   (let [handler identity
         request (mock/request :get "/foo")]

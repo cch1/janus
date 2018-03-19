@@ -5,5 +5,4 @@ Consider either supporting symbols AsSegment or removing support for Keywords -w
 Do we really need nil AsSegment?
 change namespace of keyword key of router in ring request map
 Emit distilled routes as pure data
-Use spec to coerce short-form routes to full routes.
-Catch exceptions parsing path.
+Use spec to coerce short-form routes to full routes (see reitit)
