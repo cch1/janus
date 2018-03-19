@@ -3,6 +3,5 @@ Use edited zippers instead of separate params attribute of Router
 Consider combining Routable and Routed -what's the point?
 Consider either supporting symbols AsSegment or removing support for Keywords -what's the point?
 Do we really need nil AsSegment?
-change namespace of keyword key of router in ring request map
 Emit distilled routes as pure data
 Use spec to coerce short-form routes to full routes (see reitit)
