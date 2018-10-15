@@ -5,3 +5,4 @@ Consider either supporting symbols AsSegment or removing support for Keywords -w
 Do we really need nil AsSegment?
 Emit distilled routes as pure data
 Use spec to coerce short-form routes to full routes (see reitit)
+Consider implementing backtracking to handle e.g. overlapping regexs.
