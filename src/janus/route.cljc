@@ -3,6 +3,7 @@
               :clj [java.net URI URLDecoder URLEncoder]))
   (:require [clojure.string :as string]
             [clojure.zip :as z]
+            [clojure.spec.alpha :as s]
             [clojure.core.match :as m]))
 
 (defprotocol AsSegment
@@ -83,16 +84,14 @@
   #?(:clj (.getRawPath (.normalize (URI. uri)))
      :cljs (.getPath (goog.Uri. uri))))
 
-(let [named? (partial instance? clojure.lang.Named)
-      as-segment? (partial satisfies? AsSegment)
-      dispatchable? (fn [x] (or (fn? x) (var? x) (named? x)))]
+(s/def ::name (partial instance? clojure.lang.Named))
+(s/def ::segment (partial satisfies? AsSegment))
+(s/def ::dispatchable (s/or :fn fn? :var var? :named ::name))
+(s/def ::route (s/tuple ::name (s/tuple ::segment ::dispatchable (s/* ::route))))
 
-  (defn- valid-route?
-    [[identifier [as-segment dispatchable routes]]]
-    (and (named? identifier)
-       (as-segment? as-segment)
-       (dispatchable? dispatchable)
-       (every? valid-route? routes)))
+(let [named? (partial s/valid? ::name)
+      as-segment? (partial s/valid? ::segment)
+      dispatchable? (partial s/valid? ::dispatchable)]
 
   (defn- normalize
     "Yields `route => [identifiable [as-segment dispatchable routes]]`"
@@ -100,7 +99,7 @@
     ([dispatchable route] (normalize [::root [nil dispatchable route]]))
     ([] (normalize [::root [nil ::root {}]])) ; degenerate route table, implicit root
     ([route]
-     {:post [(valid-route? %)]}
+     {:post [(s/valid? ::route %)]}
      (if-not (sequential? route)
        (normalize [::root [nil route {}]]) ; degenerate route table; explicit root
        (let [[identifiable v] route
