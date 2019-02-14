@@ -3,7 +3,8 @@
   :url "https://github.com/cch1/janus"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :plugins [[com.roomkey/lein-v "6.1.0"]]
+  :plugins [[com.roomkey/lein-v "7.0.0"]]
+  :middleware [lein-v.plugin/middleware]
   :release-tasks [["vcs" "assert-committed"]
                   ["v" "update"]
                   ["vcs" "push"]
