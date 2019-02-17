@@ -74,7 +74,7 @@
   [route]
   (z/zipper (constantly true)
             (fn [node] (-> node last last seq))
-            (fn [node children] (assoc-in node [1 2] (into {} children)))
+            (fn [node children] (assoc-in node [1 2] children))
             route))
 
 (defn- normalize-target [target] (if (vector? target) target [target nil]))
@@ -97,35 +97,36 @@
     "Yields `route => [identifiable [as-segment dispatchable routes]]`"
     ([identifiable dispatchable route] (normalize [identifiable [true dispatchable route]]))
     ([dispatchable route] (normalize [::root [nil dispatchable route]]))
-    ([] (normalize [::root [nil ::root {}]])) ; degenerate route table, implicit root
+    ([] (normalize [::root [nil ::root ()]])) ; degenerate route table
     ([route]
      {:post [(s/valid? ::route %)]}
      (if-not (sequential? route)
-       (normalize [::root [nil route {}]]) ; degenerate route table; explicit root
+       (normalize [::root [nil route ()]]) ; degenerate route table; explicit dispatchable
        (let [[identifiable v] route
              s (name identifiable)]
          (cond
            (vector? v) (m/match [(count v) v]
                                 [0 []]
-                                , (normalize [identifiable [s identifiable {}]])
-                                [1 [(a :guard coll?)]]
+                                , (normalize [identifiable [s identifiable ()]])
+                                [1 [(a :guard seqable?)]]
                                 , (normalize [identifiable [s identifiable a]])
                                 [1 [(a :guard as-segment?)]]
-                                , (normalize [identifiable [a identifiable {}]])
+                                , (normalize [identifiable [a identifiable ()]])
                                 [1 [(a :guard dispatchable?)]]
-                                , (normalize [identifiable [s a {}]])
+                                , (normalize [identifiable [s a ()]])
                                 [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                                , (normalize [identifiable [a b {}]])
-                                [2 [(a :guard as-segment?) (b :guard coll?)]]
+                                , (normalize [identifiable [a b ()]])
+                                [2 [(a :guard as-segment?) (b :guard seqable?)]]
                                 , (normalize [identifiable [a identifiable b]])
-                                [2 [(a :guard dispatchable?) (b :guard coll?)]]
+                                [2 [(a :guard dispatchable?) (b :guard seqable?)]]
                                 , (normalize [identifiable [s a b]])
-                                [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard coll?)]]
-                                ,[identifiable [a b (into (empty c) (map normalize c))]]
+                                [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
+                                , [identifiable [a b (map normalize c)]]
                                 :else (throw (ex-info "Unrecognized route format" {::route route})))
-           (associative? v) (normalize [identifiable [s identifiable v]])
-           (or (var? v) (fn? v)) (normalize [identifiable [s v {}]])
-           :else (normalize [identifiable [v identifiable {}]])))))))
+           (string? v) (normalize [identifiable [v identifiable ()]])
+           (seqable? v) (normalize [identifiable [s identifiable v]])
+           (or (var? v) (fn? v)) (normalize [identifiable [s v ()]])
+           :else (normalize [identifiable [v identifiable ()]])))))))
 
 (defrecord Router [zipper params]
   Routable

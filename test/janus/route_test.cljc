@@ -9,10 +9,11 @@
 
 (deftest normalization
   (let [normalized [:root ["root" identity {}]]]
-    (is (= [:root ["root" identity {}]] (node (router [:root identity]))))
-    (is (= [:root ["root" identity {}]] (node (router [:root ["root" identity]]))))
-    (is (= [:root ["root" :root {}]] (node (router [:root {}]))))
-    (is (= [:root ["root" :root {}]] (node (router [:root "root"]))))))
+    (is (= [:root ["root" identity ()]] (node (router [:root identity]))))
+    (is (= [:root ["root" identity ()]] (node (router [:root ["root" identity]]))))
+    (is (= [:root ["root" :root ()]] (node (router [:root {}]))))
+    (is (= [:root ["root" :root ()]] (node (router [:root "root"]))))
+    (is (= [:R [nil :R ()]] (node (router [:R [nil :R {}]]))))))
 
 (deftest identify-patterns
   (testing "nil"
@@ -45,8 +46,8 @@
       (is (= [[:s "foo"]] (parameters router)))))
   (testing "function"
     (let [f (fn [x] (if (string? x) ; good for multimethod
-                     (when-let [i (Integer/parseInt x)] (when (even? i) i))
-                     (do (assert (even? x)) (str x))))
+                      (when-let [i (Integer/parseInt x)] (when (even? i) i))
+                      (do (assert (even? x)) (str x))))
           router (-> [:R [nil :R {:even [f :even {}]}]] router (identify "/12"))]
       (is (= [:R :even ] (identifiers router)))
       (is (= [[:even 12]] (parameters router)))))
@@ -85,15 +86,15 @@
       (is (= "/foo" (path router)))))
   (testing "function"
     (let [f (fn [x] (if (string? x) ; good for multimethod
-                     (when-let [i (Integer/parseInt x)] (when (even? i) i))
-                     (do (assert (even? x)) (str x))))
+                      (when-let [i (Integer/parseInt x)] (when (even? i) i))
+                      (do (assert (even? x)) (str x))))
           router (-> [:R [nil :R {:even [f :even {}]}]] router (generate [[:even 12]]))]
       (is (= [:R :even] (identifiers router)))
       (is (= "/12" (path router))))))
 
 (def $rs (let [f (fn [x] (if (string? x) ; good for multimethod
-                          ({"CA" :CA "CANADA" :CA "UNITED STATES" :US "USA" :US "US" :US} (string/upper-case x))
-                          ({:US "United States" :CA "Canada"} x)))]
+                           ({"CA" :CA "CANADA" :CA "UNITED STATES" :US "USA" :US "US" :US} (string/upper-case x))
+                           ({:US "United States" :CA "Canada"} x)))]
            [:root
             [nil :root
              {'a ["a" 'a
@@ -148,19 +149,19 @@
           router (-> [:R [nil :R {'a [true 'a {}]}]] router)]
       (is (= uri (-> router (generate params) path)))
       (is (= params (-> router (identify uri) parameters)))))
-    (testing "regex"
-      (testing "without capture groups"
-        (let [uri "/867-5309"
-              params [['a "867-5309"]]
-              router (-> [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] router)]
-          (is (= uri (-> router (generate params) path)))
-          (is (= params (-> router (identify uri) parameters)))))
-      (testing "with covering capture groups"
-        (let [uri "/ab"
-              params [['a ["a" "b"]]]
-              router (-> [:R [nil :R {'a [#"(a)(b)" 'a {}]}]] router)]
-          (is (= uri (-> router (generate params) path)))
-          (is (= params (-> router (identify uri) parameters)))))))
+  (testing "regex"
+    (testing "without capture groups"
+      (let [uri "/867-5309"
+            params [['a "867-5309"]]
+            router (-> [:R [nil :R {'a [#"(?:\d{3})-(?:\d{4})" 'a {}]}]] router)]
+        (is (= uri (-> router (generate params) path)))
+        (is (= params (-> router (identify uri) parameters)))))
+    (testing "with covering capture groups"
+      (let [uri "/ab"
+            params [['a ["a" "b"]]]
+            router (-> [:R [nil :R {'a [#"(a)(b)" 'a {}]}]] router)]
+        (is (= uri (-> router (generate params) path)))
+        (is (= params (-> router (identify uri) parameters)))))))
 
 ;;; https://en.wikipedia.org/wiki/Exoplanet
 (def astronomy
