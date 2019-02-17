@@ -10,6 +10,6 @@
                   ["vcs" "push"]
                   ["deploy" "clojars"]]
   :min-lein-version "2.5.2"
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/core.match "0.2.2"]]
   :profiles {:dev {:dependencies [[ring/ring-mock "0.3.2"]]}})
