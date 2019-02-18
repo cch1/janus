@@ -3,7 +3,14 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v0.6.1...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v0.7.0...HEAD)
+## [0.7.0](https://github.com/cch1/janus/compare/v0.6.1...v0.7.0) - 2019-02-18
+### Added
+- Conform child routes to sequentials instead of leaving as seqable associatives.
+### Changed
+- Update dependencies.
+### Removed
+### Fixed
 ## [0.6.1](https://github.com/cch1/janus/compare/v0.6.0...v0.6.1) - 2017-05-11
 ### Added
 - Route error handling with multi-method.
