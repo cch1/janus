@@ -74,17 +74,54 @@
   (children [route] "Return children of this route.")
   (make-route [route children] "Makes new route from existing route and new children."))
 
+(defprotocol ConformableRoute
+  (conform [route] "Return the conformed form of this route"))
+
 (extend-protocol Route
   clojure.lang.IPersistentVector
   (children? [this] true)
   (children [this] (-> this last last seq))
   (make-route [this children] (assoc-in this [1 2] children)))
 
+(extend-protocol ConformableRoute
+  clojure.lang.IPersistentVector
+  (conform [route] (let [[identifiable v] route
+                         s (name identifiable)
+                         as-segment? (partial s/valid? ::segment)
+                         dispatchable? (partial s/valid? ::dispatchable)]
+                     (cond
+                       (vector? v) (m/match [(count v) v]
+                                            [0 []]
+                                            , (conform [identifiable [s identifiable ()]])
+                                            [1 [(a :guard seqable?)]]
+                                            , (conform [identifiable [s identifiable a]])
+                                            [1 [(a :guard as-segment?)]]
+                                            , (conform [identifiable [a identifiable ()]])
+                                            [1 [(a :guard dispatchable?)]]
+                                            , (conform [identifiable [s a ()]])
+                                            [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
+                                            , (conform [identifiable [a b ()]])
+                                            [2 [(a :guard as-segment?) (b :guard seqable?)]]
+                                            , (conform [identifiable [a identifiable b]])
+                                            [2 [(a :guard dispatchable?) (b :guard seqable?)]]
+                                            , (conform [identifiable [s a b]])
+                                            [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
+                                            , [identifiable [a b (map conform c)]] ; terminus
+                                            :else (throw (ex-info "Unrecognized route format" {::route route})))
+                       (string? v) (conform [identifiable [v identifiable ()]])
+                       (seqable? v) (conform [identifiable [s identifiable v]])
+                       (or (var? v) (fn? v)) (conform [identifiable [s v ()]])
+                       :else (conform [identifiable [v identifiable ()]]))))
+  clojure.lang.Keyword
+  (conform [this] (conform [::root [nil this ()]])))
+
 (deftype RecursiveRoute [name as-segment dispatch]
   Route
   (children? [this] true)
   (children [this] [this])
   (make-route [this children] this)
+  ConformableRoute
+  (conform [this] this)
   clojure.lang.Seqable
   (seq [this] (seq [name [as-segment dispatch [this]]]))
   clojure.lang.Sequential)
@@ -107,46 +144,14 @@
 (s/def ::route (s/or :pair (s/tuple ::name (s/tuple ::segment ::dispatchable (s/* ::route)))
                      :route (partial satisfies? Route)))
 
-(let [named? (partial s/valid? ::name)
-      as-segment? (partial s/valid? ::segment)
-      dispatchable? (partial s/valid? ::dispatchable)]
-
-  (defn- normalize
-    "Yields `route => [identifiable [as-segment dispatchable routes]]`"
-    ([identifiable dispatchable route] (normalize [identifiable [true dispatchable route]]))
-    ([dispatchable route] (normalize [::root [nil dispatchable route]]))
-    ([] (normalize [::root [nil ::root ()]])) ; degenerate route table
-    ([route]
-     {:post [(s/valid? ::route %)]}
-     (cond
-       (instance? RecursiveRoute route) route ; there be dragons here
-       (satisfies? Route route) (let [[identifiable v] route
-                                      s (name identifiable)]
-                                  (cond
-                                    (vector? v) (m/match [(count v) v]
-                                                         [0 []]
-                                                         , (normalize [identifiable [s identifiable ()]])
-                                                         [1 [(a :guard seqable?)]]
-                                                         , (normalize [identifiable [s identifiable a]])
-                                                         [1 [(a :guard as-segment?)]]
-                                                         , (normalize [identifiable [a identifiable ()]])
-                                                         [1 [(a :guard dispatchable?)]]
-                                                         , (normalize [identifiable [s a ()]])
-                                                         [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                                                         , (normalize [identifiable [a b ()]])
-                                                         [2 [(a :guard as-segment?) (b :guard seqable?)]]
-                                                         , (normalize [identifiable [a identifiable b]])
-                                                         [2 [(a :guard dispatchable?) (b :guard seqable?)]]
-                                                         , (normalize [identifiable [s a b]])
-                                                         [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
-                                                         , [identifiable [a b (map normalize c)]]
-                                                         :else (throw (ex-info "Unrecognized route format" {::route route})))
-                                    (string? v) (normalize [identifiable [v identifiable ()]])
-                                    (seqable? v) (normalize [identifiable [s identifiable v]])
-                                    (or (var? v) (fn? v)) (normalize [identifiable [s v ()]])
-                                    :else (normalize [identifiable [v identifiable ()]])))
-       ::else (normalize [::root [nil route ()]]) ; degenerate route table; explicit dispatchable
-       ))))
+(defn- conform*
+  "Yields `route => [identifiable [as-segment dispatchable routes]]`"
+  ([identifiable dispatchable route] (conform* [identifiable [true dispatchable route]]))
+  ([dispatchable route] (conform* [::root [nil dispatchable route]]))
+  ([] (conform* [::root [nil ::root ()]])) ; degenerate route table
+  ([route]
+   {:post [(s/valid? ::route %)]}
+   (conform route)))
 
 (defrecord Router [zipper params]
   Routable
@@ -200,7 +205,7 @@
 
 (defn router
   [route]
-  (Router. (-> route normalize r-zip) []))
+  (Router. (-> route conform* r-zip) []))
 
 (defn recursive-route [name as-segment dispatch]
   (->RecursiveRoute name as-segment dispatch))
