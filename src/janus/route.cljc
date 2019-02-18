@@ -141,7 +141,8 @@
 (s/def ::name (partial instance? clojure.lang.Named))
 (s/def ::segment (partial satisfies? AsSegment))
 (s/def ::dispatchable (s/or :fn fn? :var var? :named ::name))
-(s/def ::route (s/or :pair (s/tuple ::name (s/tuple ::segment ::dispatchable (s/* ::route)))
+(s/def ::route-body (s/tuple ::segment ::dispatchable (s/* ::route)))
+(s/def ::route (s/or :tuple (s/tuple ::name ::route-body)
                      :route (partial satisfies? Route)))
 
 (defn- conform*
