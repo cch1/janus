@@ -3,7 +3,14 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v0.6.0...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v0.6.1...HEAD)
+## [0.6.1](https://github.com/cch1/janus/compare/v0.6.0...v0.6.1) - 2017-05-11
+### Added
+- Route error handling with multi-method.
+### Changed
+- Update dependencies.
+### Removed
+### Fixed
 ## [0.6.0](https://github.com/cch1/janus/compare/v0.5.0...v0.6.0) - 2017-02-26
 ### Added
 - Support returning generalized path.
