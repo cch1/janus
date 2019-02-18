@@ -70,15 +70,21 @@
            (URLDecoder/decode s encoding))))
 
 (defprotocol Route
-  (branch? [node] "Is it possible for node to have children?")
-  (node-children [node] "Return children of this node.")
-  (make-node [node children] "Makes new node from existing node and new children."))
+  (children? [route] "Is it possible for route to have children?")
+  (children [route] "Return children of this route.")
+  (make-route [route children] "Makes new route from existing route and new children."))
+
+(extend-protocol Route
+  clojure.lang.IPersistentVector
+  (children? [this] true)
+  (children [this] (-> this last last seq))
+  (make-route [this children] (assoc-in this [1 2] children)))
 
 (deftype RecursiveRoute [name as-segment dispatch]
   Route
-  (branch? [this] true)
-  (node-children [this] [this])
-  (make-node [this children] this)
+  (children? [this] true)
+  (children [this] [this])
+  (make-route [this children] this)
   clojure.lang.Seqable
   (seq [this] (seq [name [as-segment dispatch [this]]]))
   clojure.lang.Sequential)
@@ -86,10 +92,7 @@
 (defn- r-zip
   "Return a zipper for a normalized route data structure"
   [route]
-  (z/zipper (fn [node] (if (satisfies? Route node) (branch? node) true))
-            (fn [node] (if (satisfies? Route node) (node-children node) (-> node last last seq)))
-            (fn [node children] (if (satisfies? Route node) (make-node node children) (assoc-in node [1 2] children)))
-            route))
+  (z/zipper children? children make-route route))
 
 (defn- normalize-target [target] (if (vector? target) target [target nil]))
 
@@ -117,31 +120,31 @@
      {:post [(s/valid? ::route %)]}
      (cond
        (instance? RecursiveRoute route) route ; there be dragons here
-       (sequential? route) (let [[identifiable v] route
-                                 s (name identifiable)]
-                             (cond
-                               (vector? v) (m/match [(count v) v]
-                                                    [0 []]
-                                                    , (normalize [identifiable [s identifiable ()]])
-                                                    [1 [(a :guard seqable?)]]
-                                                    , (normalize [identifiable [s identifiable a]])
-                                                    [1 [(a :guard as-segment?)]]
-                                                    , (normalize [identifiable [a identifiable ()]])
-                                                    [1 [(a :guard dispatchable?)]]
-                                                    , (normalize [identifiable [s a ()]])
-                                                    [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                                                    , (normalize [identifiable [a b ()]])
-                                                    [2 [(a :guard as-segment?) (b :guard seqable?)]]
-                                                    , (normalize [identifiable [a identifiable b]])
-                                                    [2 [(a :guard dispatchable?) (b :guard seqable?)]]
-                                                    , (normalize [identifiable [s a b]])
-                                                    [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
-                                                    , [identifiable [a b (map normalize c)]]
-                                                    :else (throw (ex-info "Unrecognized route format" {::route route})))
-                               (string? v) (normalize [identifiable [v identifiable ()]])
-                               (seqable? v) (normalize [identifiable [s identifiable v]])
-                               (or (var? v) (fn? v)) (normalize [identifiable [s v ()]])
-                               :else (normalize [identifiable [v identifiable ()]])))
+       (satisfies? Route route) (let [[identifiable v] route
+                                      s (name identifiable)]
+                                  (cond
+                                    (vector? v) (m/match [(count v) v]
+                                                         [0 []]
+                                                         , (normalize [identifiable [s identifiable ()]])
+                                                         [1 [(a :guard seqable?)]]
+                                                         , (normalize [identifiable [s identifiable a]])
+                                                         [1 [(a :guard as-segment?)]]
+                                                         , (normalize [identifiable [a identifiable ()]])
+                                                         [1 [(a :guard dispatchable?)]]
+                                                         , (normalize [identifiable [s a ()]])
+                                                         [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
+                                                         , (normalize [identifiable [a b ()]])
+                                                         [2 [(a :guard as-segment?) (b :guard seqable?)]]
+                                                         , (normalize [identifiable [a identifiable b]])
+                                                         [2 [(a :guard dispatchable?) (b :guard seqable?)]]
+                                                         , (normalize [identifiable [s a b]])
+                                                         [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
+                                                         , [identifiable [a b (map normalize c)]]
+                                                         :else (throw (ex-info "Unrecognized route format" {::route route})))
+                                    (string? v) (normalize [identifiable [v identifiable ()]])
+                                    (seqable? v) (normalize [identifiable [s identifiable v]])
+                                    (or (var? v) (fn? v)) (normalize [identifiable [s v ()]])
+                                    :else (normalize [identifiable [v identifiable ()]])))
        ::else (normalize [::root [nil route ()]]) ; degenerate route table; explicit dispatchable
        ))))
 
