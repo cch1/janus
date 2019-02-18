@@ -69,12 +69,26 @@
   #?(:clj ([s encoding]
            (URLDecoder/decode s encoding))))
 
+(defprotocol Route
+  (branch? [node] "Is it possible for node to have children?")
+  (node-children [node] "Return children of this node.")
+  (make-node [node children] "Makes new node from existing node and new children."))
+
+(deftype RecursiveRoute [name as-segment dispatch]
+  Route
+  (branch? [this] true)
+  (node-children [this] [this])
+  (make-node [this children] this)
+  clojure.lang.Seqable
+  (seq [this] (seq [name [as-segment dispatch [this]]]))
+  clojure.lang.Sequential)
+
 (defn- r-zip
   "Return a zipper for a normalized route data structure"
   [route]
-  (z/zipper (constantly true)
-            (fn [node] (-> node last last seq))
-            (fn [node children] (assoc-in node [1 2] children))
+  (z/zipper (fn [node] (if (satisfies? Route node) (branch? node) true))
+            (fn [node] (if (satisfies? Route node) (node-children node) (-> node last last seq)))
+            (fn [node children] (if (satisfies? Route node) (make-node node children) (assoc-in node [1 2] children)))
             route))
 
 (defn- normalize-target [target] (if (vector? target) target [target nil]))
@@ -87,7 +101,8 @@
 (s/def ::name (partial instance? clojure.lang.Named))
 (s/def ::segment (partial satisfies? AsSegment))
 (s/def ::dispatchable (s/or :fn fn? :var var? :named ::name))
-(s/def ::route (s/tuple ::name (s/tuple ::segment ::dispatchable (s/* ::route))))
+(s/def ::route (s/or :pair (s/tuple ::name (s/tuple ::segment ::dispatchable (s/* ::route)))
+                     :route (partial satisfies? Route)))
 
 (let [named? (partial s/valid? ::name)
       as-segment? (partial s/valid? ::segment)
@@ -100,33 +115,35 @@
     ([] (normalize [::root [nil ::root ()]])) ; degenerate route table
     ([route]
      {:post [(s/valid? ::route %)]}
-     (if-not (sequential? route)
-       (normalize [::root [nil route ()]]) ; degenerate route table; explicit dispatchable
-       (let [[identifiable v] route
-             s (name identifiable)]
-         (cond
-           (vector? v) (m/match [(count v) v]
-                                [0 []]
-                                , (normalize [identifiable [s identifiable ()]])
-                                [1 [(a :guard seqable?)]]
-                                , (normalize [identifiable [s identifiable a]])
-                                [1 [(a :guard as-segment?)]]
-                                , (normalize [identifiable [a identifiable ()]])
-                                [1 [(a :guard dispatchable?)]]
-                                , (normalize [identifiable [s a ()]])
-                                [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                                , (normalize [identifiable [a b ()]])
-                                [2 [(a :guard as-segment?) (b :guard seqable?)]]
-                                , (normalize [identifiable [a identifiable b]])
-                                [2 [(a :guard dispatchable?) (b :guard seqable?)]]
-                                , (normalize [identifiable [s a b]])
-                                [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
-                                , [identifiable [a b (map normalize c)]]
-                                :else (throw (ex-info "Unrecognized route format" {::route route})))
-           (string? v) (normalize [identifiable [v identifiable ()]])
-           (seqable? v) (normalize [identifiable [s identifiable v]])
-           (or (var? v) (fn? v)) (normalize [identifiable [s v ()]])
-           :else (normalize [identifiable [v identifiable ()]])))))))
+     (cond
+       (instance? RecursiveRoute route) route ; there be dragons here
+       (sequential? route) (let [[identifiable v] route
+                                 s (name identifiable)]
+                             (cond
+                               (vector? v) (m/match [(count v) v]
+                                                    [0 []]
+                                                    , (normalize [identifiable [s identifiable ()]])
+                                                    [1 [(a :guard seqable?)]]
+                                                    , (normalize [identifiable [s identifiable a]])
+                                                    [1 [(a :guard as-segment?)]]
+                                                    , (normalize [identifiable [a identifiable ()]])
+                                                    [1 [(a :guard dispatchable?)]]
+                                                    , (normalize [identifiable [s a ()]])
+                                                    [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
+                                                    , (normalize [identifiable [a b ()]])
+                                                    [2 [(a :guard as-segment?) (b :guard seqable?)]]
+                                                    , (normalize [identifiable [a identifiable b]])
+                                                    [2 [(a :guard dispatchable?) (b :guard seqable?)]]
+                                                    , (normalize [identifiable [s a b]])
+                                                    [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
+                                                    , [identifiable [a b (map normalize c)]]
+                                                    :else (throw (ex-info "Unrecognized route format" {::route route})))
+                               (string? v) (normalize [identifiable [v identifiable ()]])
+                               (seqable? v) (normalize [identifiable [s identifiable v]])
+                               (or (var? v) (fn? v)) (normalize [identifiable [s v ()]])
+                               :else (normalize [identifiable [v identifiable ()]])))
+       ::else (normalize [::root [nil route ()]]) ; degenerate route table; explicit dispatchable
+       ))))
 
 (defrecord Router [zipper params]
   Routable
@@ -181,3 +198,6 @@
 (defn router
   [route]
   (Router. (-> route normalize r-zip) []))
+
+(defn recursive-route [name as-segment dispatch]
+  (->RecursiveRoute name as-segment dispatch))

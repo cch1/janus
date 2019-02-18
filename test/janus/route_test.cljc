@@ -188,3 +188,10 @@
     (is (= universe (-> earth root)))
     (is (nil? (parent universe)))
     (is (= venus (-> earth parent (generate [[:planet "Venus"]]))))))
+
+(deftest recursive-wildcard-swallows-children
+  (let [uri "/a/b/c/leaf"
+        router (-> [:R [nil :R {'a ["a" 'a [(recursive-route '* true identity)]]}]] router)
+        params [['a "a"] ['* "b"] ['* "c"] ['* "leaf"]]]
+    (is (= uri (-> router (generate params) path)))
+    (is (= params (-> router (identify uri) parameters)))))
