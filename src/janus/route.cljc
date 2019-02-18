@@ -151,7 +151,7 @@
   ([dispatchable route] (conform* [::root [nil dispatchable route]]))
   ([] (conform* [::root [nil ::root ()]])) ; degenerate route table
   ([route]
-   {:post [(s/valid? ::route %)]}
+   {:pre [(satisfies? ConformableRoute route)] :post [(s/valid? ::route %)]}
    (conform route)))
 
 (defrecord Router [zipper params]
