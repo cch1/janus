@@ -78,40 +78,50 @@
   (conform [route] "Return the conformed form of this route"))
 
 (extend-protocol Route
-  clojure.lang.IPersistentVector
+  clojure.lang.PersistentVector
+  (children? [this] true)
+  (children [this] (-> this last last seq))
+  (make-route [this children] (assoc-in this [1 2] children))
+  clojure.lang.MapEntry
   (children? [this] true)
   (children [this] (-> this last last seq))
   (make-route [this children] (assoc-in this [1 2] children)))
 
+(defn- conform-ipersistentvector
+  [ipv]
+  (let [[identifiable v] ipv
+        s (name identifiable)
+        as-segment? (partial s/valid? ::segment)
+        dispatchable? (partial s/valid? ::dispatchable)]
+    (cond
+      (vector? v) (m/match [(count v) v]
+                           [0 []]
+                           , (conform [identifiable [s identifiable ()]])
+                           [1 [(a :guard seqable?)]]
+                           , (conform [identifiable [s identifiable a]])
+                           [1 [(a :guard as-segment?)]]
+                           , (conform [identifiable [a identifiable ()]])
+                           [1 [(a :guard dispatchable?)]]
+                           , (conform [identifiable [s a ()]])
+                           [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
+                           , (conform [identifiable [a b ()]])
+                           [2 [(a :guard as-segment?) (b :guard seqable?)]]
+                           , (conform [identifiable [a identifiable b]])
+                           [2 [(a :guard dispatchable?) (b :guard seqable?)]]
+                           , (conform [identifiable [s a b]])
+                           [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
+                           , [identifiable [a b (map conform c)]] ; terminus
+                           :else (throw (ex-info "Unrecognized route format" {::route ipv})))
+      (string? v) (conform [identifiable [v identifiable ()]])
+      (seqable? v) (conform [identifiable [s identifiable v]])
+      (or (var? v) (fn? v)) (conform [identifiable [s v ()]])
+      :else (conform [identifiable [v identifiable ()]]))))
+
 (extend-protocol ConformableRoute
-  clojure.lang.IPersistentVector
-  (conform [route] (let [[identifiable v] route
-                         s (name identifiable)
-                         as-segment? (partial s/valid? ::segment)
-                         dispatchable? (partial s/valid? ::dispatchable)]
-                     (cond
-                       (vector? v) (m/match [(count v) v]
-                                            [0 []]
-                                            , (conform [identifiable [s identifiable ()]])
-                                            [1 [(a :guard seqable?)]]
-                                            , (conform [identifiable [s identifiable a]])
-                                            [1 [(a :guard as-segment?)]]
-                                            , (conform [identifiable [a identifiable ()]])
-                                            [1 [(a :guard dispatchable?)]]
-                                            , (conform [identifiable [s a ()]])
-                                            [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                                            , (conform [identifiable [a b ()]])
-                                            [2 [(a :guard as-segment?) (b :guard seqable?)]]
-                                            , (conform [identifiable [a identifiable b]])
-                                            [2 [(a :guard dispatchable?) (b :guard seqable?)]]
-                                            , (conform [identifiable [s a b]])
-                                            [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
-                                            , [identifiable [a b (map conform c)]] ; terminus
-                                            :else (throw (ex-info "Unrecognized route format" {::route route})))
-                       (string? v) (conform [identifiable [v identifiable ()]])
-                       (seqable? v) (conform [identifiable [s identifiable v]])
-                       (or (var? v) (fn? v)) (conform [identifiable [s v ()]])
-                       :else (conform [identifiable [v identifiable ()]]))))
+  clojure.lang.PersistentVector
+  (conform [this] (conform-ipersistentvector this))
+  clojure.lang.MapEntry
+  (conform [this] (conform-ipersistentvector this))
   clojure.lang.Keyword
   (conform [this] (conform [::root [nil this ()]])))
 
