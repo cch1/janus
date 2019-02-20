@@ -195,3 +195,10 @@
         params [['a "a"] ['* "b"] ['* "c"] ['* "leaf"]]]
     (is (= uri (-> router (generate params) path)))
     (is (= params (-> router (identify uri) parameters)))))
+
+(deftest generalized-path
+  (let [universe (router astronomy)
+        sol (generate universe ['galaxies [:galaxy "Milky Way"]
+                                'systems [:system "Sol"]])
+        earth (generate sol ['planets [:planet "Earth"]])]
+    (is (= "/galaxies/:galaxy/systems/:system/planets/:planet" (path earth true)))))
