@@ -26,8 +26,7 @@
   "An abstraction for an entity located in the route tree that can describe its position"
   (path [this] [this generalized?] "Return the path of the route as a string, optionally generalized")
   (identifiers [this] "Return the route as a sequence of segment identifiers")
-  (parameters [this]  "Return map of segment identifiers to route parameters")
-  (node [this] "Return the resulting route leaf node"))
+  (parameters [this]  "Return map of segment identifiers to route parameters"))
 
 (extend-protocol AsSegment
   nil ; implicitly matched and generated placeholder -used by the root route.
@@ -72,23 +71,55 @@
   #?(:clj ([s encoding]
            (URLDecoder/decode s encoding))))
 
-(defprotocol Route
-  (children? [route] "Is it possible for route to have children?")
-  (children [route] "Return children of this route.")
-  (make-route [route children] "Makes new route from existing route and new children."))
+(defprotocol Zippable
+  (branch? [route] "Is it possible for this node to have children?")
+  (children [route] "Return children of this node.")
+  (make-node [route children] "Makes new node from existing node and new children."))
+
+(defprotocol Identifiable
+  (ident [this]))
 
 (defprotocol ConformableRoute
   (conform [route] "Return the conformed form of this route"))
 
-(extend-protocol Route
-  clojure.lang.PersistentVector
-  (children? [this] true)
-  (children [this] (-> this last last seq))
-  (make-route [this children] (assoc-in this [1 2] children))
-  clojure.lang.MapEntry
-  (children? [this] true)
-  (children [this] (-> this last last seq))
-  (make-route [this children] (assoc-in this [1 2] children)))
+(deftype Route [identifiable as-segment dispatchable children]
+  Zippable
+  (branch? [this] (seq children))
+  (children [this] children)
+  (make-node [this children] (Route. identifiable as-segment dispatchable children))
+  ConformableRoute
+  (conform [this] this)
+  AsSegment
+  (match [this segment] (match as-segment segment))
+  (build [this options] (build as-segment options))
+  Identifiable
+  (ident [this] identifiable)
+  Dispatchable
+  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table)))
+
+(deftype RecursiveRoute [identifiable as-segment dispatchable]
+  Zippable
+  (branch? [this] true)
+  (children [this] [this])
+  (make-node [this children] this)
+  ConformableRoute
+  (conform [this] this)
+  AsSegment
+  (match [this segment] (match as-segment segment))
+  (build [this options] (build as-segment options))
+  Identifiable
+  (ident [this] identifiable)
+  Dispatchable
+  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table)))
+
+(extend-protocol Dispatchable
+  clojure.lang.Fn
+  (dispatch [this request args] (this request))
+  Object
+  (dispatch [this request args] this))
+
+(s/def ::segment (partial satisfies? AsSegment))
+(s/def ::dispatchable (partial satisfies? Dispatchable))
 
 (defn- conform-ipersistentvector
   [ipv]
@@ -104,16 +135,16 @@
                            , (conform [identifiable [s identifiable a]])
                            [1 [(a :guard as-segment?)]]
                            , (conform [identifiable [a identifiable ()]])
-                           [1 [(a :guard dispatchable?)]]
+                           [1 [a]]
                            , (conform [identifiable [s a ()]])
-                           [2 [(a :guard as-segment?) (b :guard dispatchable?)]]
-                           , (conform [identifiable [a b ()]])
                            [2 [(a :guard as-segment?) (b :guard seqable?)]]
                            , (conform [identifiable [a identifiable b]])
                            [2 [(a :guard dispatchable?) (b :guard seqable?)]]
                            , (conform [identifiable [s a b]])
-                           [3 [(a :guard as-segment?) (b :guard dispatchable?) (c :guard seqable?)]]
-                           , [identifiable [a b (map conform c)]] ; terminus
+                           [2 [(a :guard as-segment?) b]]
+                           , (conform [identifiable [a b ()]])
+                           [3 [(a :guard as-segment?) b (c :guard seqable?)]]
+                           , (->Route identifiable a b (map conform c)) ; terminus
                            :else (throw (ex-info "Unrecognized route format" {::route ipv})))
       (string? v) (conform [identifiable [v identifiable ()]])
       (seqable? v) (conform [identifiable [s identifiable v]])
@@ -128,21 +159,10 @@
   clojure.lang.Keyword
   (conform [this] (conform [::root [nil this ()]])))
 
-(deftype RecursiveRoute [name as-segment dispatch]
-  Route
-  (children? [this] true)
-  (children [this] [this])
-  (make-route [this children] this)
-  ConformableRoute
-  (conform [this] this)
-  clojure.lang.Seqable
-  (seq [this] (seq [name [as-segment dispatch [this]]]))
-  clojure.lang.Sequential)
-
 (defn- r-zip
   "Return a zipper for a normalized route data structure"
   [route]
-  (z/zipper children? children make-route route))
+  (z/zipper branch? children make-node route))
 
 (defn- normalize-target [target] (if (vector? target) target [target nil]))
 
@@ -151,20 +171,13 @@
   #?(:clj (.getRawPath (.normalize (URI. uri)))
      :cljs (.getPath (goog.Uri. uri))))
 
-(s/def ::name (partial instance? clojure.lang.Named))
-(s/def ::segment (partial satisfies? AsSegment))
-(s/def ::dispatchable (s/or :fn fn? :var var? :named ::name))
-(s/def ::route-body (s/tuple ::segment ::dispatchable (s/* ::route)))
-(s/def ::route (s/or :tuple (s/tuple ::name ::route-body)
-                     :route (partial satisfies? Route)))
-
 (defn- conform*
   "Yields `route => [identifiable [as-segment dispatchable routes]]`"
   ([identifiable dispatchable route] (conform* [identifiable [true dispatchable route]]))
   ([dispatchable route] (conform* [::root [nil dispatchable route]]))
   ([] (conform* [::root [nil ::root ()]])) ; degenerate route table
   ([route]
-   {:pre [(satisfies? ConformableRoute route)] :post [(s/valid? ::route %)]}
+   {:pre [(satisfies? ConformableRoute route)] :post [(satisfies? Zippable %)]}
    (conform route)))
 
 (defrecord Router [zipper params]
@@ -175,8 +188,8 @@
     (if-let [segments (seq (map url-decode (rest (string/split (normalize-uri uri) #"/"))))]
       (loop [rz (z/down zipper) segments segments params params]
         (when rz
-          (let [[_ [as-segment _ _]] (z/node rz)]
-            (if-let [p (match as-segment (first segments))]
+          (let [route (z/node rz)]
+            (if-let [p (match route (first segments))]
               (if-let [remaining-segments (seq (rest segments))]
                 (recur (z/down rz) remaining-segments (conj params p))
                 (Router. rz (conj params p)))
@@ -186,8 +199,8 @@
     (if-let [ps (seq (map normalize-target targets))]
       (loop [rz (z/down zipper) [[i p] & remaining-ps :as ps] ps params params]
         (when rz
-          (let [[identifier [as-segment _ _]] (z/node rz)]
-            (if-let [p' (when (= identifier i) (build as-segment p))]
+          (let [route (z/node rz)]
+            (if-let [p' (when (= (.ident route) i) (build route p))]
               (if (seq remaining-ps)
                 (recur (z/down rz) remaining-ps (conj params p))
                 (Router. rz (conj params p)))
@@ -197,20 +210,30 @@
   (path [this] (path this false))
   (path [this generalized?]
     (let [nodes (rest (concat (z/path zipper) (list (z/node zipper))))
-          f (if generalized?
-              (comp first first vector)
-              (fn [[identifiable [as-segment _ _]] p]
-                (url-encode (build as-segment p))))
+          f (fn [route p] (if generalized? (ident route) (url-encode (build route p))))
           segments (map f nodes params)]
       (str "/" (string/join "/" segments))))
-  (identifiers [this] (map first (concat (z/path zipper) (list (z/node zipper)))))
+  (identifiers [this] (map ident (concat (z/path zipper) (list (z/node zipper)))))
   (parameters [this] (map vector (rest (identifiers this)) params))
-  (node [this] (z/node zipper)))
+  Dispatchable
+  (dispatch [this request dispatch-table] (dispatch (z/node zipper) request dispatch-table)))
 
 #?(:clj
+   (remove-method clojure.core/print-method Router)
+   (remove-method clojure.core/print-method Route)
    (defmethod clojure.core/print-method Router
      [router ^java.io.Writer writer]
      (.write writer (format "#<Router \"%s\">" (path router))))
+   (defmethod clojure.core/print-method Route
+     [route-node ^java.io.Writer writer]
+     (doto writer
+       (.write "#<Route ")
+       (.write (str [(.identifiable route-node)
+                     (.as-segment route-node)
+                     (.dispatchable route-node)
+                     (map (fn [n] (.identifiable n)) (.children route-node))]))
+       (.write ">")))
+
    :cljs
    (extend-protocol IPrintWithWriter
      Router

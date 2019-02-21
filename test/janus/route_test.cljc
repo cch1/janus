@@ -4,16 +4,13 @@
                :cljs [cljs.test :refer-macros [deftest is testing]])
             [clojure.string :as string]))
 
-(deftest router-construction
-  (is (instance? janus.route.Router (router :r))))
-
-(deftest normalization
-  (let [normalized [:root ["root" identity {}]]]
-    (is (= [:root ["root" identity ()]] (node (router [:root identity]))))
-    (is (= [:root ["root" identity ()]] (node (router [:root ["root" identity]]))))
-    (is (= [:root ["root" :root ()]] (node (router [:root {}]))))
-    (is (= [:root ["root" :root ()]] (node (router [:root "root"]))))
-    (is (= [:R [nil :R ()]] (node (router [:R [nil :R {}]]))))))
+(deftest router-construction ; identity required to fool deftest's assert-expr bullshit
+  (is (instance? janus.route.Router (router :r)))
+  (is (instance? janus.route.Router (router [:root identity])))
+  (is (instance? janus.route.Router (router [:root ["root" identity]])))
+  (is (instance? janus.route.Router (router [:root {}])))
+  (is (instance? janus.route.Router (router [:root "root"])))
+  (is (instance? janus.route.Router (router [:R [nil :R {}]]))))
 
 (deftest identify-patterns
   (testing "nil"

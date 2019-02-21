@@ -19,11 +19,7 @@
   (dispatch [this request dispatch-table]
     (let [f (get dispatch-table this)]
       (assert f (format "No dispatch function found for symbol %s" this))
-      (f request)))
-  janus.route.Router
-  (dispatch [this request dispatch-table]
-    (let [[_ [_ dispatchable _]] (route/node this)]
-      (route/dispatch dispatchable request dispatch-table))))
+      (f request))))
 
 (defn make-dispatcher
   ([] (make-dispatcher {}))
