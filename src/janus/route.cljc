@@ -11,6 +11,9 @@
   (match [this segment] "If the given segment matches this, return the match context (if any), otherwise falsey")
   (build [this options] "Build the segment represented by this with the given options"))
 
+(defprotocol Dispatchable
+  (dispatch [this request args]))
+
 (defprotocol Routable
   "An abstraction for an entity located in the route tree that can process move instructions by
   returning a new instance"

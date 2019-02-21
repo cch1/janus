@@ -1,10 +1,7 @@
 (ns janus.ring
   (:require [janus.route :as route]))
 
-(defprotocol Dispatchable
-  (dispatch [this request args]))
-
-(extend-protocol Dispatchable
+(extend-protocol janus.route/Dispatchable
   nil
   (dispatch [this request dispatch-table] (get dispatch-table this))
   clojure.lang.Fn
@@ -26,7 +23,7 @@
   janus.route.Router
   (dispatch [this request dispatch-table]
     (let [[_ [_ dispatchable _]] (route/node this)]
-      (dispatch dispatchable request dispatch-table))))
+      (route/dispatch dispatchable request dispatch-table))))
 
 (defn make-dispatcher
   ([] (make-dispatcher {}))
@@ -39,7 +36,7 @@
                        (update request :params merge (into {} (filter (fn [[k v]] (keyword? k)))
                                                            route-params))
                        request)]
-         (dispatch router request dispatch-table))))))
+         (route/dispatch router request dispatch-table))))))
 
 (defmulti exception-handler "Handle exceptions that don't allow routing to execute" class)
 
