@@ -41,7 +41,7 @@
   (match [this segment] (when (= (name this) segment) segment))
   (build [this _] (name this))
   java.lang.Boolean ; invertible
-  (match [this segment] segment)
+  (match [this segment] (when this segment))
   (build [this args] args)
   java.util.regex.Pattern ; invertible
   (match [this segment] (when-let [m (re-matches this segment)]
