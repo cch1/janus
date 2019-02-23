@@ -51,5 +51,3 @@
                 req (if route-params (assoc req :route-params route-params) req)]
             (handler (assoc req ::router r)))
           (catch Exception e (exception-handler e))))))
-
-(def ^:deprecated make-identifier wrap-identify)
