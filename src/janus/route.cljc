@@ -120,7 +120,7 @@
   Dispatchable
   (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
   java.lang.Object
-  (hashCode [this] (.hashCode [identifiable as-segment dispatchable children]))
+  (hashCode [this] (.hashCode [identifiable as-segment dispatchable]))
   (equals [this other]
     (and (= (class this) (class other))
          (= (.identifiable this) (.identifiable other))
