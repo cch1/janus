@@ -199,3 +199,13 @@
                                 'systems [:system "Sol"]])
         earth (generate sol ['planets [:planet "Earth"]])]
     (is (= "/galaxies/:galaxy/systems/:system/planets/:planet" (path earth true)))))
+
+(deftest equality
+  (is (= (->Route :route "route" :route ())
+         (->Route :route "route" :route ())))
+  (is (not= (->Route :route1 "route" :route ())
+            (->Route :route2 "route" :route ())))
+  (is (= (->Route :route "route" :route (list (->Route :child "child" :child ())))
+         (->Route :route "route" :route (list (->Route :child "child" :child ())))))
+  (is (not= (->Route :route "route" :route (list (->Route :child0 "child" :child ())))
+            (->Route :route "route" :route (list (->Route :child1 "child" :child ()))))))

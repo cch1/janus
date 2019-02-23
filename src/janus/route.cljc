@@ -95,7 +95,15 @@
   Identifiable
   (ident [this] identifiable)
   Dispatchable
-  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table)))
+  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
+  java.lang.Object
+  (hashCode [this] (.hashCode [identifiable as-segment dispatchable children]))
+  (equals [this other]
+    (and (= (class this) (class other))
+         (= (.identifiable this) (.identifiable other))
+         (= (.as-segment this) (.as-segment other))
+         (= (.dispatchable this) (.dispatchable other))
+         (= (.children this) (.children other)))))
 
 (deftype RecursiveRoute [identifiable as-segment dispatchable]
   Zippable
@@ -110,7 +118,14 @@
   Identifiable
   (ident [this] identifiable)
   Dispatchable
-  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table)))
+  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
+  java.lang.Object
+  (hashCode [this] (.hashCode [identifiable as-segment dispatchable children]))
+  (equals [this other]
+    (and (= (class this) (class other))
+         (= (.identifiable this) (.identifiable other))
+         (= (.as-segment this) (.as-segment other))
+         (= (.dispatchable this) (.dispatchable other)))))
 
 (extend-protocol Dispatchable
   clojure.lang.Fn
