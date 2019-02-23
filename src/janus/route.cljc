@@ -57,7 +57,7 @@
 
 (defn- url-encode
   [s]
-  {:pre [(string? s)] :post [(string? s)]}
+  {:pre [(string? s)] :post [(string? %)]}
   (-> s
       #?(:clj (URLEncoder/encode "UTF-8")
          :cljs (js/encodeURIComponent))
