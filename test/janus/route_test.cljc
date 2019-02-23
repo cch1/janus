@@ -209,3 +209,8 @@
          (->Route :route "route" :route (list (->Route :child "child" :child ())))))
   (is (not= (->Route :route "route" :route (list (->Route :child0 "child" :child ())))
             (->Route :route "route" :route (list (->Route :child1 "child" :child ()))))))
+
+(deftest tagged-literal-supported
+  (let [routes (->Route :route "route" :route (list (->RecursiveRoute :recursive-route "recursive-route" :recursive-route)))]
+    (is (= routes (binding [*data-readers* {'janus.route/Route janus.route/read-route 'janus.route/RecursiveRoute janus.route/read-recursive-route}]
+                    (read-string (pr-str routes)))))))

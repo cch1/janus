@@ -234,20 +234,22 @@
   (dispatch [this request dispatch-table] (dispatch (z/node zipper) request dispatch-table)))
 
 #?(:clj
-   (remove-method clojure.core/print-method Router)
-   (remove-method clojure.core/print-method Route)
-   (defmethod clojure.core/print-method Router
-     [router ^java.io.Writer writer]
-     (.write writer (format "#<Router \"%s\">" (path router))))
-   (defmethod clojure.core/print-method Route
-     [route-node ^java.io.Writer writer]
-     (doto writer
-       (.write "#<Route ")
-       (.write (str [(.identifiable route-node)
-                     (.as-segment route-node)
-                     (.dispatchable route-node)
-                     (map (fn [n] (.identifiable n)) (.children route-node))]))
-       (.write ">")))
+   (do (defmethod clojure.core/print-method Router
+         [router ^java.io.Writer writer]
+         (.write writer (format "#<Router \"%s\">" (path router))))
+       (defmethod clojure.core/print-method Route
+         [route ^java.io.Writer writer]
+         (.write writer "#janus.route/Route ")
+         (print-method [(.identifiable route)
+                        (.as-segment route)
+                        (.dispatchable route)
+                        (.children route)] writer))
+       (defmethod clojure.core/print-method RecursiveRoute
+         [route ^java.io.Writer writer]
+         (.write writer "#janus.route/RecursiveRoute ")
+         (print-method [(.identifiable route)
+                        (.as-segment route)
+                        (.dispatchable route)] writer)))
 
    :cljs
    (extend-protocol IPrintWithWriter
@@ -261,3 +263,6 @@
 
 (defn recursive-route [name as-segment dispatch]
   (->RecursiveRoute name as-segment dispatch))
+
+(def read-route (partial apply ->Route))
+(def read-recursive-route (partial apply ->RecursiveRoute))
