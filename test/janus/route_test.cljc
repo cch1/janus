@@ -214,3 +214,18 @@
   (let [routes (->Route :route "route" :route (list (->RecursiveRoute :recursive-route "recursive-route" :recursive-route)))]
     (is (= routes (binding [*data-readers* {'janus.route/Route janus.route/read-route 'janus.route/RecursiveRoute janus.route/read-recursive-route}]
                     (read-string (pr-str routes)))))))
+
+(deftest custom-as-segment-proof-of-concept
+  (let [geopoint-segment (reify AsSegment
+                           (match [this segment]
+                             (when-let [[_ lat lon radius :as els] (re-matches #"(-?\d+(?:\.\d+)?);(-?\d+(?:\.\d+))(?:;(\d+(?:\.\d+)))?" segment)]
+                               (let [[lat lon radius] (sequence (comp (filter identity) (map (fn [el] (Float/parseFloat el)))) (rest els))]
+                                 [lat lon (or radius 10.0)])))
+                           (build [this [lat lon radius]]
+                             (format "%3.4f;%3.4f;%5.4f" lat lon radius)))
+        r (router [:R {:geopoint [geopoint-segment identity ()]}])
+        uri-in "/61.45%3B-0.56"
+        params (list [:geopoint [61.45 -0.56 10.0]])
+        uri-out "/61.4500%3B-0.5600%3B10.0000"]
+    ;; (is (= params (parameters (identify r uri-in)))) ; My kingdom for midje's `roughly` checker
+    (is (= uri-out (path (generate r (parameters (identify r uri-in))))))))
