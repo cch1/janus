@@ -257,7 +257,7 @@
 
 (defn router
   [route]
-  (Router. (-> route conform* r-zip) []))
+  (->Router (-> route conform* r-zip) []))
 
 (defn recursive-route [name as-segment dispatch]
   (->RecursiveRoute name as-segment dispatch))
