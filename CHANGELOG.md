@@ -3,7 +3,17 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v0.7.0...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v1.0.0...HEAD)
+## [1.0.0](https://github.com/cch1/janus/compare/v0.7.0...v1.0.0) - 2019-02-23
+### Added
+- Tagged literal support for Route and RecursiveRoute
+- Equality semantics (from Object.equals) for Route and RecursiveRoute
+### Changed
+- Refactor use of protocols and types for simplicity
+### Removed
+- Remove deprecated janus.ring/make-identifier
+### Fixed
+- Semantic failure on Boolean AsSegment implementation
 ## [0.7.0](https://github.com/cch1/janus/compare/v0.6.1...v0.7.0) - 2019-02-18
 ### Added
 - Conform child routes to sequentials instead of leaving as seqable associatives.

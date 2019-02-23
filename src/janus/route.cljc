@@ -1,4 +1,5 @@
 (ns janus.route
+  "Construct routing tree, identify route from URIs and generate route from parameters"
   (:import #?(:cljs goog.Uri
               :clj [java.net URI URLDecoder URLEncoder]))
   (:require [clojure.string :as string]
@@ -77,7 +78,7 @@
   (make-node [route children] "Makes new node from existing node and new children."))
 
 (defprotocol Identifiable
-  (ident [this]))
+  (ident [this] "Identify this logical route segment"))
 
 (defprotocol ConformableRoute
   (conform [route] "Return the conformed form of this route"))

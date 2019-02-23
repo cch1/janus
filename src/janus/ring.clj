@@ -1,4 +1,5 @@
 (ns janus.ring
+  "Identify routes from Ring-compatible requests and dispatch to Ring-compatible handlers"
   (:require [janus.route :as route]))
 
 (extend-protocol janus.route/Dispatchable
