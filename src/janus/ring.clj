@@ -4,9 +4,6 @@
 (extend-protocol janus.route/Dispatchable
   nil
   (dispatch [this request dispatch-table] (get dispatch-table this))
-  clojure.lang.Fn
-  (dispatch [this request _]
-    (this request))
   clojure.lang.Var
   (dispatch [this request _]
     ((deref this) request))
