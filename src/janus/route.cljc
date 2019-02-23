@@ -7,6 +7,9 @@
             [clojure.spec.alpha :as s]
             [clojure.core.match :as m]))
 
+(defprotocol Identifiable
+  (ident [this] "Identify this logical route segment"))
+
 (defprotocol AsSegment
   "An abstraction for concisely representing the construction and identification of route segments"
   (match [this segment] "If the given segment matches this, return the match context (if any), otherwise falsey")
@@ -14,20 +17,6 @@
 
 (defprotocol Dispatchable
   (dispatch [this request args]))
-
-(defprotocol Routable
-  "An abstraction for an entity located in the route tree that can process move instructions by
-  returning a new instance"
-  (root [this] "Return a new routable located at the root")
-  (parent [this] "Return a new routable located at the parent of this")
-  (identify [this path] "Return a new routable based on the given path (URI)")
-  (generate [this params] "Return a new routable based on the given path parameters"))
-
-(defprotocol Routed
-  "An abstraction for an entity located in the route tree that can describe its position"
-  (path [this] [this generalized?] "Return the path of the route as a string, optionally generalized")
-  (identifiers [this] "Return the route as a sequence of segment identifiers")
-  (parameters [this]  "Return map of segment identifiers to route parameters"))
 
 (extend-protocol AsSegment
   nil ; implicitly matched and generated placeholder -used by the root route.
@@ -56,29 +45,16 @@
   (match [this segment] (this segment))
   (build [this args] (this args)))
 
-(defn- url-encode
-  [s]
-  {:pre [(string? s)] :post [(string? %)]}
-  (-> s
-      #?(:clj (URLEncoder/encode "UTF-8")
-         :cljs (js/encodeURIComponent))
-      (.replace "+" "%20")))
-
-(defn- url-decode
-  ([s]
-   {:pre [(string? s)]}
-   #?(:clj (url-decode s "UTF-8")
-      :cljs (some-> s (js/decodeURIComponent))))
-  #?(:clj ([s encoding]
-           (URLDecoder/decode s encoding))))
+(extend-protocol Dispatchable
+  clojure.lang.Fn
+  (dispatch [this request args] (this request))
+  Object
+  (dispatch [this request args] this))
 
 (defprotocol Zippable
   (branch? [route] "Is it possible for this node to have children?")
   (children [route] "Return children of this node.")
   (make-node [route children] "Makes new node from existing node and new children."))
-
-(defprotocol Identifiable
-  (ident [this] "Identify this logical route segment"))
 
 (defprotocol ConformableRoute
   (conform [route] "Return the conformed form of this route"))
@@ -128,12 +104,6 @@
          (= (.as-segment this) (.as-segment other))
          (= (.dispatchable this) (.dispatchable other)))))
 
-(extend-protocol Dispatchable
-  clojure.lang.Fn
-  (dispatch [this request args] (this request))
-  Object
-  (dispatch [this request args] this))
-
 (s/def ::segment (partial satisfies? AsSegment))
 (s/def ::dispatchable (partial satisfies? Dispatchable))
 
@@ -180,13 +150,6 @@
   [route]
   (z/zipper branch? children make-node route))
 
-(defn- normalize-target [target] (if (vector? target) target [target nil]))
-
-(defn- normalize-uri
-  [uri]
-  #?(:clj (.getRawPath (.normalize (URI. uri)))
-     :cljs (.getPath (goog.Uri. uri))))
-
 (defn- conform*
   "Yields `route => [identifiable [as-segment dispatchable routes]]`"
   ([identifiable dispatchable route] (conform* [identifiable [true dispatchable route]]))
@@ -195,6 +158,43 @@
   ([route]
    {:pre [(satisfies? ConformableRoute route)] :post [(satisfies? Zippable %)]}
    (conform route)))
+
+(defprotocol Routable
+  "An abstraction for an entity located in the route tree that can process move instructions by
+  returning a new instance"
+  (root [this] "Return a new routable located at the root")
+  (parent [this] "Return a new routable located at the parent of this")
+  (identify [this path] "Return a new routable based on the given path (URI)")
+  (generate [this params] "Return a new routable based on the given path parameters"))
+
+(defprotocol Routed
+  "An abstraction for an entity located in the route tree that can describe its position"
+  (path [this] [this generalized?] "Return the path of the route as a string, optionally generalized")
+  (identifiers [this] "Return the route as a sequence of segment identifiers")
+  (parameters [this]  "Return map of segment identifiers to route parameters"))
+
+(defn- normalize-target [target] (if (vector? target) target [target nil]))
+
+(defn- normalize-uri
+  [uri]
+  #?(:clj (.getRawPath (.normalize (URI. uri)))
+     :cljs (.getPath (goog.Uri. uri))))
+
+(defn- url-encode
+  [s]
+  {:pre [(string? s)] :post [(string? %)]}
+  (-> s
+      #?(:clj (URLEncoder/encode "UTF-8")
+         :cljs (js/encodeURIComponent))
+      (.replace "+" "%20")))
+
+(defn- url-decode
+  ([s]
+   {:pre [(string? s)]}
+   #?(:clj (url-decode s "UTF-8")
+      :cljs (some-> s (js/decodeURIComponent))))
+  #?(:clj ([s encoding]
+           (URLDecoder/decode s encoding))))
 
 (defrecord Router [zipper params]
   Routable
@@ -258,12 +258,12 @@
      (-pr-writer [this writer opts]
        (-write writer (format "#<Router %s>" (path this))))))
 
+(def read-route (partial apply ->Route))
+(def read-recursive-route (partial apply ->RecursiveRoute))
+
 (defn router
   [route]
   (->Router (-> route conform* r-zip) []))
 
 (defn recursive-route [name as-segment dispatch]
   (->RecursiveRoute name as-segment dispatch))
-
-(def read-route (partial apply ->Route))
-(def read-recursive-route (partial apply ->RecursiveRoute))
