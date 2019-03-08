@@ -5,7 +5,8 @@
   (:require [clojure.string :as string]
             [clojure.zip :as z]
             [clojure.spec.alpha :as s]
-            [clojure.core.match :as m]))
+            [clojure.core.match :as m]
+            [clojure.pprint]))
 
 (defprotocol Identifiable
   (ident [this] "Identify this logical route segment"))
@@ -245,13 +246,18 @@
                         (.as-segment route)
                         (.dispatchable route)
                         (.children route)] writer))
+       (defmethod clojure.pprint/simple-dispatch Router
+         [router]
+         (print-method router *out*))
        (defmethod clojure.core/print-method RecursiveRoute
          [route ^java.io.Writer writer]
          (.write writer "#janus.route/RecursiveRoute ")
          (print-method [(.identifiable route)
                         (.as-segment route)
-                        (.dispatchable route)] writer)))
-
+                        (.dispatchable route)] writer))
+       (defmethod clojure.pprint/simple-dispatch Router
+         [router]
+         (print-method router *out*)))
    :cljs
    (extend-protocol IPrintWithWriter
      Router
