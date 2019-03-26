@@ -1,10 +1,12 @@
 (ns janus.route-test
-  (:require [janus.route :refer :all]
+  (:require [janus.route :refer [router identify identifiers parameters generate path parent root recursive-route
+                                 ->Route ->RecursiveRoute AsSegment]]
+            [clojure.tools.reader.edn :as edn]
             #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :refer-macros [deftest is testing]])
+               :cljs [cljs.test :refer-macros [deftest is testing run-tests]])
             [clojure.string :as string]))
 
-(deftest router-construction ; identity required to fool deftest's assert-expr bullshit
+(deftest router-construction
   (is (instance? janus.route.Router (router :r)))
   (is (instance? janus.route.Router (router [:root identity])))
   (is (instance? janus.route.Router (router [:root ["root" identity]])))
@@ -43,7 +45,8 @@
       (is (= [[:s "foo"]] (parameters router)))))
   (testing "function"
     (let [f (fn [x] (if (string? x) ; good for multimethod
-                      (when-let [i (Integer/parseInt x)] (when (even? i) i))
+                      (when-let [i (#?(:cljs js/parseInt :clj Integer/parseInt) x)]
+                        (when (even? i) i))
                       (do (assert (even? x)) (str x))))
           router (-> [:R [nil :R {:even [f :even {}]}]] router (identify "/12"))]
       (is (= [:R :even ] (identifiers router)))
@@ -83,7 +86,7 @@
       (is (= "/foo" (path router)))))
   (testing "function"
     (let [f (fn [x] (if (string? x) ; good for multimethod
-                      (when-let [i (Integer/parseInt x)] (when (even? i) i))
+                      (when-let [i #?(:cljs (js/parseInt x) :clj (Integer/parseInt x))] (when (even? i) i))
                       (do (assert (even? x)) (str x))))
           router (-> [:R [nil :R {:even [f :even {}]}]] router (generate [[:even 12]]))]
       (is (= [:R :even] (identifiers router)))
@@ -212,17 +215,20 @@
 
 (deftest tagged-literal-supported
   (let [routes (->Route :route "route" :route (list (->RecursiveRoute :recursive-route "recursive-route" :recursive-route)))]
-    (is (= routes (binding [*data-readers* {'janus.route/Route janus.route/read-route 'janus.route/RecursiveRoute janus.route/read-recursive-route}]
-                    (read-string (pr-str routes)))))))
+    (is (= routes
+           (edn/read-string {:readers {'janus.route/Route janus.route/read-route 'janus.route/RecursiveRoute janus.route/read-recursive-route}}
+                            (pr-str routes))))))
 
 (deftest custom-as-segment-proof-of-concept
   (let [geopoint-segment (reify AsSegment
                            (match [this segment]
                              (when-let [[_ lat lon radius :as els] (re-matches #"(-?\d+(?:\.\d+)?);(-?\d+(?:\.\d+))(?:;(\d+(?:\.\d+)))?" segment)]
-                               (let [[lat lon radius] (sequence (comp (filter identity) (map (fn [el] (Float/parseFloat el)))) (rest els))]
+                               (let [[lat lon radius] (sequence (comp (filter identity)
+                                                                      (map (fn [el] (#?(:cljs js/parseFloat
+                                                                                        :clj Float/parseFloat) el)))) (rest els))]
                                  [lat lon (or radius 10.0)])))
                            (build [this [lat lon radius]]
-                             (format "%3.4f;%3.4f;%5.4f" lat lon radius)))
+                             #?(:cljs (goog.string/format "%3.4f;%3.4f;%5.4f" lat lon radius) :clj (format "%3.4f;%3.4f;%5.4f" lat lon radius))))
         r (router [:R {:geopoint [geopoint-segment identity ()]}])
         uri-in "/61.45%3B-0.56"
         params (list [:geopoint [61.45 -0.56 10.0]])

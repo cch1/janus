@@ -1,12 +1,14 @@
 (ns janus.route
   "Construct routing tree, identify route from URIs and generate route from parameters"
-  (:import #?(:cljs goog.Uri
-              :clj [java.net URI URLDecoder URLEncoder]))
+  (:import #?@(:cljs (goog.Uri)
+               :clj ([java.net URI URLDecoder URLEncoder])))
   (:require [clojure.string :as string]
             [clojure.zip :as z]
             [clojure.spec.alpha :as s]
             [clojure.core.match :as m]
-            [clojure.pprint]))
+            [clojure.pprint]
+            #?@(:cljs ([goog.string :as gstring]
+                       goog.string.format))))
 
 (defprotocol Identifiable
   (ident [this] "Identify this logical route segment"))
@@ -23,33 +25,33 @@
   nil ; implicitly matched and generated placeholder -used by the root route.
   (match [this segment])
   (build [this _])
-  String ; constant, invertible
+  #?(:cljs string :clj String) ; constant, invertible
   (match [this segment] (when (= this segment) segment))
   (build [this args] (if (sequential? args)
-                       (apply format this args)
+                       (apply #?(:cljs gstring/format :clj format) this args)
                        this))
-  clojure.lang.Keyword ; constant, invertible
+  #?(:cljs cljs.core/Keyword :clj clojure.lang.Keyword) ; constant, invertible
   (match [this segment] (when (= (name this) segment) segment))
   (build [this _] (name this))
-  java.lang.Boolean ; invertible
+  #?(:cljs boolean :clj java.lang.Boolean) ; invertible
   (match [this segment] (when this segment))
   (build [this args] args)
-  java.util.regex.Pattern ; invertible
+  #?(:cljs js/RegExp :clj java.util.regex.Pattern) ; invertible
   (match [this segment] (when-let [m (re-matches this segment)]
                           (cond (string? m) m
                                 (vector? m) (rest m))))
   (build [this args] (if (sequential? args) (apply str args) args))
-  clojure.lang.PersistentVector ; invertible when elements are inverses of each other
+  #?(:cljs cljs.core/PersistentVector :clj clojure.lang.PersistentVector) ; invertible when elements are inverses of each other
   (match [this segment] (match (first this) segment))
   (build [this args] (build (second this) args))
-  clojure.lang.Fn ; potentially invertible
+  #?(:cljs function :clj clojure.lang.Fn) ; potentially invertible
   (match [this segment] (this segment))
   (build [this args] (this args)))
 
 (extend-protocol Dispatchable
-  clojure.lang.Fn
+  #?(:cljs function :clj clojure.lang.Fn)
   (dispatch [this request args] (this request))
-  Object
+  #?(:cljs object :clj Object)
   (dispatch [this request args] this))
 
 (defprotocol Zippable
@@ -59,6 +61,12 @@
 
 (defprotocol ConformableRoute
   (conform [route] "Return the conformed form of this route"))
+
+(defn- equivalent-routes [r0 r1] (and (= (type r0) (type r1))
+                                      (= (.-identifiable r0) (.-identifiable r1))
+                                      (= (.-as-segment r0) (.-as-segment r1))
+                                      (= (.-dispatchable r0) (.-dispatchable r1))
+                                      (= (.-children r0) (.-children r1))))
 
 (deftype Route [identifiable as-segment dispatchable children]
   Zippable
@@ -74,14 +82,16 @@
   (ident [this] identifiable)
   Dispatchable
   (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
-  java.lang.Object
-  (hashCode [this] (.hashCode [identifiable as-segment dispatchable children]))
-  (equals [this other]
-    (and (= (class this) (class other))
-         (= (.identifiable this) (.identifiable other))
-         (= (.as-segment this) (.as-segment other))
-         (= (.dispatchable this) (.dispatchable other))
-         (= (.children this) (.children other)))))
+  #?@(:cljs (IEquiv
+             (-equiv [this other] (equivalent-routes this other)))
+      :clj (java.lang.Object
+            (hashCode [this] (.hashCode [identifiable as-segment dispatchable children]))
+            (equals [this other] (equivalent-routes this other)))))
+
+(defn- equivalent-recursive-routes [r0 r1] (and (= (type r0) (type r1))
+                                                (= (.-identifiable r0) (.-identifiable r1))
+                                                (= (.-as-segment r0) (.-as-segment r1))
+                                                (= (.-dispatchable r0) (.-dispatchable r1))))
 
 (deftype RecursiveRoute [identifiable as-segment dispatchable]
   Zippable
@@ -97,16 +107,14 @@
   (ident [this] identifiable)
   Dispatchable
   (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
-  java.lang.Object
-  (hashCode [this] (.hashCode [identifiable as-segment dispatchable]))
-  (equals [this other]
-    (and (= (class this) (class other))
-         (= (.identifiable this) (.identifiable other))
-         (= (.as-segment this) (.as-segment other))
-         (= (.dispatchable this) (.dispatchable other)))))
+  #?@(:cljs (IEquiv
+             (-equiv [this other] (equivalent-recursive-routes this other)))
+      :clj (java.lang.Object
+            (hashCode [this] (.hashCode [identifiable as-segment dispatchable]))
+            (equals [this other] (equivalent-recursive-routes this other)))))
 
-(s/def ::segment (partial satisfies? AsSegment))
-(s/def ::dispatchable (partial satisfies? Dispatchable))
+(s/def ::segment #(satisfies? AsSegment %))
+(s/def ::dispatchable #(satisfies? Dispatchable %))
 
 (defn- conform-ipersistentvector
   [ipv]
@@ -139,11 +147,11 @@
       :else (conform [identifiable [v identifiable ()]]))))
 
 (extend-protocol ConformableRoute
-  clojure.lang.PersistentVector
+  #?(:cljs cljs.core/PersistentVector :clj clojure.lang.PersistentVector)
   (conform [this] (conform-ipersistentvector this))
-  clojure.lang.MapEntry
+  #?(:cljs cljs.core/MapEntry :clj clojure.lang.MapEntry)
   (conform [this] (conform-ipersistentvector this))
-  clojure.lang.Keyword
+  #?(:cljs cljs.core/Keyword :clj clojure.lang.Keyword)
   (conform [this] (conform [::root [nil this ()]])))
 
 (defn- r-zip
@@ -151,13 +159,16 @@
   [route]
   (z/zipper branch? children make-node route))
 
+(s/def ::conformable-route #(satisfies? ConformableRoute %))
+(s/def ::zippable #(satisfies? Zippable %))
+
 (defn- conform*
   "Yields `route => [identifiable [as-segment dispatchable routes]]`"
   ([identifiable dispatchable route] (conform* [identifiable [true dispatchable route]]))
   ([dispatchable route] (conform* [::root [nil dispatchable route]]))
   ([] (conform* [::root [nil ::root ()]])) ; degenerate route table
   ([route]
-   {:pre [(satisfies? ConformableRoute route)] :post [(satisfies? Zippable %)]}
+   {:pre [(s/valid? ::conformable-route route)] :post [(s/valid? ::zippable %)]}
    (conform route)))
 
 (defprotocol Routable
@@ -193,7 +204,7 @@
   ([s]
    {:pre [(string? s)]}
    #?(:clj (url-decode s "UTF-8")
-      :cljs (some-> s (js/decodeURIComponent))))
+      :cljs (js/decodeURIComponent s)))
   #?(:clj ([s encoding]
            (URLDecoder/decode s encoding))))
 
@@ -217,7 +228,7 @@
       (loop [rz (z/down zipper) [[i p] & remaining-ps :as ps] ps params params]
         (when rz
           (let [route (z/node rz)]
-            (if-let [p' (when (= (.ident route) i) (build route p))]
+            (if-let [p' (when (= (ident route) i) (build route p))]
               (if (seq remaining-ps)
                 (recur (z/down rz) remaining-ps (conj params p))
                 (Router. rz (conj params p)))
@@ -262,7 +273,20 @@
    (extend-protocol IPrintWithWriter
      Router
      (-pr-writer [this writer opts]
-       (-write writer (format "#<Router %s>" (path this))))))
+       (-write writer (goog.string/format "#<Router %s>" (path this))))
+     Route
+     (-pr-writer [this writer opts]
+       (-write writer "#janus.route/Route ")
+       (-pr-writer [(.-identifiable this)
+                    (.-as-segment this)
+                    (.-dispatchable this)
+                    (.-children this)] writer opts))
+     RecursiveRoute
+     (-pr-writer [this writer opts]
+       (-write writer "#janus.route/RecursiveRoute ")
+       (-pr-writer [(.-identifiable this)
+                    (.-as-segment this)
+                    (.-dispatchable this)] writer opts))))
 
 (def read-route (partial apply ->Route))
 (def read-recursive-route (partial apply ->RecursiveRoute))
