@@ -48,12 +48,6 @@
   (match [this segment] (this segment))
   (build [this args] (this args)))
 
-(extend-protocol Dispatchable
-  #?(:cljs function :clj clojure.lang.Fn)
-  (dispatch [this request args] (this request))
-  #?(:cljs object :clj Object)
-  (dispatch [this request args] this))
-
 (defprotocol Zippable
   (branch? [route] "Is it possible for this node to have children?")
   (children [route] "Return children of this node.")

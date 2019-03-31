@@ -2,35 +2,35 @@
   "Identify routes from Ring-compatible requests and dispatch to Ring-compatible handlers"
   (:require [janus.route :as route]))
 
+(def not-found
+  (reify janus.route/Dispatchable
+    (dispatch [this _ _] {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}})))
+
+(def not-implemented
+  (reify janus.route/Dispatchable
+    (dispatch [this _ _] {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}})))
+
 (extend-protocol janus.route/Dispatchable
   nil
-  (dispatch [this request dispatch-table] (get dispatch-table this))
+  (dispatch [this request dispatch-table] (route/dispatch (get dispatch-table this not-found) request dispatch-table))
+  clojure.lang.Fn
+  (dispatch [this request _] (this request))
   clojure.lang.Var
-  (dispatch [this request _]
-    ((deref this) request))
-  clojure.lang.Keyword
   (dispatch [this request dispatch-table]
-    (let [f (get dispatch-table this)]
-      (assert f (format "No dispatch function found for keyword %s" this))
-      (f request)))
-  clojure.lang.Symbol
-  (dispatch [this request dispatch-table]
-    (let [f (get dispatch-table this)]
-      (assert f (format "No dispatch function found for symbol %s" this))
-      (f request))))
+    (route/dispatch (deref this) request dispatch-table))
+  Object ; Are there circumstances in which this will *not* dominate the implementation in janus.route (required here)?
+  (dispatch [this request dispatch-table] (route/dispatch (get dispatch-table this not-implemented) request dispatch-table)))
 
 (defn make-dispatcher
   ([] (make-dispatcher {}))
   ([dispatch-table]
-   (let [dispatch-table (merge {nil {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}}
-                               dispatch-table)]
-     (fn dispatcher
-       [{:keys [route-params params] router ::router :as request}]
-       (let [request (if (and params route-params)
-                       (update request :params merge (into {} (filter (fn [[k v]] (keyword? k)))
-                                                           route-params))
-                       request)]
-         (route/dispatch router request dispatch-table))))))
+   (fn dispatcher
+     [{:keys [route-params params] router ::router :as request}]
+     (let [request (if (and params route-params)
+                     (update request :params merge (into {} (filter (fn [[k v]] (keyword? k)))
+                                                         route-params))
+                     request)]
+       (route/dispatch router request dispatch-table)))))
 
 (defmulti exception-handler "Handle exceptions that don't allow routing to execute" class)
 

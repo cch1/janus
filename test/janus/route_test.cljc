@@ -1,5 +1,5 @@
 (ns janus.route-test
-  (:require [janus.route :refer [router identify identifiers parameters generate path parent root recursive-route
+  (:require [janus.route :refer [router identify identifiers parameters generate path parent root recursive-route dispatch
                                  ->Route ->RecursiveRoute AsSegment]]
             [clojure.tools.reader.edn :as edn]
             #?(:clj  [clojure.test :refer :all]
@@ -235,3 +235,9 @@
         uri-out "/61.4500%3B-0.5600%3B10.0000"]
     ;; (is (= params (parameters (identify r uri-in)))) ; My kingdom for midje's `roughly` checker
     (is (= uri-out (path (generate r (parameters (identify r uri-in))))))))
+
+
+(deftest dispatchable
+  (let [dispatchable (reify janus.route/Dispatchable (dispatch [this _ _] ::success))
+        router (-> [:R [nil :R {'a [:a dispatchable {}]}]] router (identify "/a"))]
+    (is (= ::success (dispatch router :request {})))))

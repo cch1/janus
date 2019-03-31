@@ -67,6 +67,11 @@
     (testing "Unidentified route triggers not found response"
       (let [request (assoc request :janus.ring/router nil)]
         (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
+               ((make-dispatcher) request)))))
+    (testing "Unimplemented handler triggers not implemented response"
+      (let [router (route/identify router "/aX")
+            request (assoc request :janus.ring/router router :route-params {})]
+        (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}}
                ((make-dispatcher) request)))))))
 
 (deftest combined-middleware
