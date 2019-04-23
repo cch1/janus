@@ -3,7 +3,16 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v1.0.0...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v1.2.0...HEAD)
+## [1.2.0](https://github.com/cch1/janus/compare/v1.1.0...v1.2.0)
+### Added
+- Clojurescript support.
+- Support distinct responses for the semantically distinct "route not found" versus "no handler available for the (found) route".
+- Support for Clojure CLI during development and consumption as a Git artifact.
+- Update to latest version of core.match (with much support for Clojurescript).
+## [1.1.0](https://github.com/cch1/janus/compare/v1.0.0...v1.1.0)
+### Added
+- Implementation of pprint dispatch for better/safer printing in newer CIDER repl.
 ## [1.0.0](https://github.com/cch1/janus/compare/v0.7.0...v1.0.0) - 2019-02-23
 ### Added
 - Tagged literal support for Route and RecursiveRoute
