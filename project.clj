@@ -12,14 +12,14 @@
                   ["vcs" "push"]
                   ["deploy" "clojars"]]
   :min-lein-version "2.5.2"
-  :dependencies [[org.clojure/clojure "1.10.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.clojure/clojurescript "1.10.520"]
                  [org.clojure/core.match "0.3.0"]]
-  :managed-dependencies [[com.google.errorprone/error_prone_annotations "2.1.3"]
+  :managed-dependencies [[com.google.errorprone/error_prone_annotations "2.3.3"]
                          [com.google.code.findbugs/jsr305 "3.0.2"]
-                         [commons-codec "1.11"]]
-  :profiles {:dev {:dependencies [[ring/ring-mock "0.3.2" :exclusions [ring/ring-codec]]
-                                  [com.bhauman/figwheel-main "0.2.0" :exclusions [org.clojure/clojurescript]]]}}
+                         [commons-codec "1.13"]]
+  :profiles {:dev {:dependencies [[ring/ring-mock "0.4.0"]
+                                  [com.bhauman/figwheel-main "0.2.3" :exclusions [org.clojure/clojurescript]]]}}
   :doo {:build "test"}
   :cljsbuild {:builds [{:id "test" ; https://lambdaisland.com/episodes/testing-clojurescript
                         :source-paths ["src" "test"]
