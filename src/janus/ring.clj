@@ -41,15 +41,22 @@
 (defmethod exception-handler :default
   [e] (throw e))
 
+(defn- identify-request
+  [router {:keys [uri path-info] :as request}]
+  (let [r (route/identify router (or path-info uri))
+        route-params (when r (into {} (route/parameters r)))
+        request (if route-params (assoc request :route-params route-params) request)]
+    (assoc request ::router r)))
+
 (defn wrap-identify
   "Create Ring middleware to identify the route of a request based on `:path-info` or `:uri`"
   ([handler router] (wrap-identify handler router exception-handler))
   ([handler router exception-handler]
    {:pre [(instance? janus.route.Router router)]}
    (fn identifier
-     [{:keys [uri path-info] :as req}]
-     (try (let [r (route/identify router (or path-info uri))
-                route-params (when r (into {} (route/parameters r)))
-                req (if route-params (assoc req :route-params route-params) req)]
-            (handler (assoc req ::router r)))
-          (catch Exception e (exception-handler e))))))
+     ([request]
+      (try (handler (identify-request router request))
+           (catch Exception e (exception-handler e))))
+     ([request respond raise]
+      (try (handler (identify-request router request) respond raise)
+           (catch Exception e (respond (exception-handler e))))))))

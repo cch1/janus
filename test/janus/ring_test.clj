@@ -5,35 +5,53 @@
             [clojure.test :refer :all]))
 
 (deftest handle-invalid-uri
-  (let [handler identity
-        ;; request (mock/request :get "/[")
-        request {:protocol "HTTP/1.1" :server-port 80 :server-name "localhost" :remote-addr "localhost"
-                 :uri "/["
-                 :scheme :http :request-method :get :headers {"host" "localhost"}}]
+  (let [router (janus.route/router [:R {:a "foo" 'a "bar"}])
+        handler (-> (fn echo
+                      ([request] request)
+                      ([request respond raise] (respond request)))
+                    (wrap-identify router))
+        response (atom nil)
+        respond #(reset! response %)
+        exception (atom nil)
+        raise #(reset! exception %)]
     (testing "Invalid URI returns response with status 400"
-      (let [routes [:R {:a "foo"}]
-            handler (wrap-identify handler (janus.route/router routes))
+      (let [request (-> (mock/request :get "/")
+                        (assoc :uri "/[")) ; have to force in an invalid URI ... mock will not tolerate it
             response (handler request)]
-        (is (= 400 (response :status)))))))
+        (is (= 400 (response :status)))))
+    (testing "Invalid URI returns async response with status 400"
+      (let [request (-> (mock/request :get "/")
+                        (assoc :uri "/["))]
+        (handler request respond raise)
+        (is (= 400 (@response :status)))))))
 
 (deftest add-route-identifier
-  (let [handler identity
-        request (mock/request :get "/foo")]
-    (testing "Identified route is available in request and route params are available"
-      (let [routes [:R {:a "foo"}]
-            handler (wrap-identify handler (janus.route/router routes))
+  (let [router (janus.route/router [:R {:a "foo" 'a "bar"}])
+        handler (-> (fn echo
+                      ([request] request)
+                      ([request respond raise] (respond request)))
+                    (wrap-identify router))
+        response (atom nil)
+        respond #(reset! response %)
+        exception (atom nil)
+        raise #(reset! exception %)]
+    (testing "Identified route and route-params are available in sync request"
+      (let [request (mock/request :get "/foo")
             response (handler request)]
         (is (instance? janus.route.Router (response :janus.ring/router)))
         (is (= {:a "foo"} (response :route-params)))))
-    (testing "Route parameters are only available for keyword identifiers"
-      (let [routes [:R {'a "foo"}]
-            handler (wrap-identify handler (janus.route/router routes))
+    (testing "Identified route and route-params are available in async request"
+      (let [request (mock/request :get "/foo")]
+        (handler request respond raise)
+        (is (instance? janus.route.Router (@response :janus.ring/router)))
+        (is (= {:a "foo"} (@response :route-params)))))
+    (testing "Route parameters are only available for keyword identifiers" ; hmmmm...
+      (let [request (mock/request :get "/bar")
             response (handler request)]
         (is (instance? janus.route.Router (response :janus.ring/router)))
-        (is (= {'a "foo"} (response :route-params)))))
+        (is (= {'a "bar"} (response :route-params)))))
     (testing "Unidentifiable route behaves gracefully"
-      (let [routes [:R {:a "not-foo"}]
-            handler (wrap-identify handler (janus.route/router routes))
+      (let [request (mock/request :get "/qux")
             response (handler request)]
         (is (nil? (response :janus.ring/router)))
         (is (nil? (response :route-params)))))))
