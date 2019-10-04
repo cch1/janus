@@ -238,6 +238,13 @@
 
 
 (deftest dispatchable
-  (let [dispatchable (reify janus.route/Dispatchable (dispatch [this _ _] ::success))
+  (let [dispatchable (reify janus.route/Dispatchable (dispatch* [this _] ::success))
         router (-> [:R [nil :R {'a [:a dispatchable {}]}]] router (identify "/a"))]
-    (is (= ::success (dispatch router :request {})))))
+    (is (= ::success (dispatch router)))
+    (is (= ::success (dispatch router {:request-method :get} {'a identity} :whatever3 "whatever4" 5 6 7 8 9 0))))
+  (let [dispatchable (reify janus.route/Dispatchable (dispatch* [this args] args))
+        router (-> [:R [nil :R {'a [:a dispatchable {}]}]] router (identify "/a"))]
+    (is (= nil (dispatch router)))
+    (is (= [::success] (dispatch router ::success)))
+    (is (= [{:request-method :get} {'a identity} :whatever3 "whatever4" 5 6 7 8 9 0]
+           (dispatch router {:request-method :get} {'a identity} :whatever3 "whatever4" 5 6 7 8 9 0)))))

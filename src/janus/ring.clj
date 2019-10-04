@@ -4,22 +4,23 @@
 
 (def not-found
   (reify janus.route/Dispatchable
-    (dispatch [this _ _] {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}})))
+    (dispatch* [this _] {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}})))
 
 (def not-implemented
   (reify janus.route/Dispatchable
-    (dispatch [this _ _] {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}})))
+    (dispatch* [this _] {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}})))
 
 (extend-protocol janus.route/Dispatchable
   nil
-  (dispatch [this request dispatch-table] (route/dispatch (get dispatch-table this not-found) request dispatch-table))
+  (dispatch* [this args] (let [dispatch-table (first args)]
+                           (route/dispatch* (get dispatch-table this not-found) args)))
   clojure.lang.Fn
-  (dispatch [this request _] (this request))
+  (dispatch* [this args] (this (last args)))
   clojure.lang.Var
-  (dispatch [this request dispatch-table]
-    (route/dispatch (deref this) request dispatch-table))
+  (dispatch* [this args] (route/dispatch* (deref this) args))
   Object ; Are there circumstances in which this will *not* dominate the implementation in janus.route (required here)?
-  (dispatch [this request dispatch-table] (route/dispatch (get dispatch-table this not-implemented) request dispatch-table)))
+  (dispatch* [this args] (let [dispatch-table (first args)]
+                           (route/dispatch* (get dispatch-table this not-implemented) args))))
 
 (defn make-dispatcher
   ([] (make-dispatcher {}))
@@ -30,7 +31,7 @@
                      (update request :params merge (into {} (filter (fn [[k v]] (keyword? k)))
                                                          route-params))
                      request)]
-       (route/dispatch router request dispatch-table)))))
+       (route/dispatch router dispatch-table request)))))
 
 (defmulti exception-handler "Handle exceptions that don't allow routing to execute" class)
 

@@ -19,7 +19,7 @@
   (build [this options] "Build the segment represented by this with the given options"))
 
 (defprotocol Dispatchable
-  (dispatch [this request args]))
+  (dispatch* [this args]))
 
 (extend-protocol AsSegment
   nil ; implicitly matched and generated placeholder -used by the root route.
@@ -75,7 +75,7 @@
   Identifiable
   (ident [this] identifiable)
   Dispatchable
-  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
+  (dispatch* [this args] (dispatch* dispatchable args))
   #?@(:cljs (IEquiv
              (-equiv [this other] (equivalent-routes this other)))
       :clj (java.lang.Object
@@ -100,7 +100,7 @@
   Identifiable
   (ident [this] identifiable)
   Dispatchable
-  (dispatch [this request dispatch-table] (dispatch dispatchable request dispatch-table))
+  (dispatch* [this args] (dispatch* dispatchable args))
   #?@(:cljs (IEquiv
              (-equiv [this other] (equivalent-recursive-routes this other)))
       :clj (java.lang.Object
@@ -238,7 +238,7 @@
   (identifiers [this] (map ident (concat (z/path zipper) (list (z/node zipper)))))
   (parameters [this] (map vector (rest (identifiers this)) params))
   Dispatchable
-  (dispatch [this request dispatch-table] (dispatch (z/node zipper) request dispatch-table)))
+  (dispatch* [this args] (dispatch* (z/node zipper) args)))
 
 #?(:clj
    (do (defmethod clojure.core/print-method Router
@@ -291,3 +291,8 @@
 
 (defn recursive-route [name as-segment dispatch]
   (->RecursiveRoute name as-segment dispatch))
+
+(defn dispatch
+  "Dispatch to the Dispatchable.dispatch method while collecting varargs"
+  [dispatchable & args]
+  (dispatch* dispatchable args))
