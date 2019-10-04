@@ -56,7 +56,8 @@
         (is (nil? (response :janus.ring/router)))
         (is (nil? (response :route-params)))))))
 
-(def handler (fn [r] [(-> r :janus.ring/router route/path) (-> r :params)]))
+(def handler (fn ([r] [(-> r :janus.ring/router route/path) (-> r :params)])
+               ([r respond raise] (respond [(-> r :janus.ring/router route/path) (-> r :params)]))))
 
 (deftest dispatch-on-route
   (let [request (assoc (mock/request :get "/foo") :params {:x "!"})
@@ -65,32 +66,50 @@
                                :c [#"c(?:.*)" #'handler]
                                :d [#"d(?:.*)" handler]}]]
         router (route/router routes)
-        dispatch-table {:a handler 'b handler}]
+        dispatch-table {:a handler 'b handler}
+        response (atom nil)
+        respond #(reset! response %)
+        exception (atom nil)
+        raise #(reset! exception %)]
     (testing "dispatch on keyword"
       (let [router (route/identify router "/aX")
             request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
-        (is (= ["/aX" {:x "!" :a "aX"}] ((make-dispatcher dispatch-table) request)))))
+        (is (= ["/aX" {:x "!" :a "aX"}] ((make-dispatcher dispatch-table) request)))
+        ((make-dispatcher dispatch-table) request respond raise)
+        (is (= ["/aX" {:x "!" :a "aX"}] @response))))
     (testing "dispatch on symbol"
       (let [router (route/identify router "/bX")
             request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
-        (is (= ["/bX" {:x "!" :b "bX"}] ((make-dispatcher dispatch-table) request)))))
+        (is (= ["/bX" {:x "!" :b "bX"}] ((make-dispatcher dispatch-table) request)))
+        ((make-dispatcher dispatch-table) request respond raise)
+        (is (= ["/bX" {:x "!" :b "bX"}] @response))))
     (testing "dispatch on var"
       (let [router (route/identify router "/cX")
             request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
-        (is (= ["/cX" {:x "!" :c "cX"}] ((make-dispatcher) request)))))
+        (is (= ["/cX" {:x "!" :c "cX"}] ((make-dispatcher) request)))
+        ((make-dispatcher dispatch-table) request respond raise)
+        (is (= ["/cX" {:x "!" :c "cX"}] @response))))
     (testing "dispatch on function"
       (let [router (route/identify router "/dX")
             request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
-        (is (= ["/dX" {:x "!" :d "dX"}] ((make-dispatcher) request)))))
+        (is (= ["/dX" {:x "!" :d "dX"}] ((make-dispatcher) request)))
+        ((make-dispatcher dispatch-table) request respond raise)
+        (is (= ["/dX" {:x "!" :d "dX"}] @response))))
     (testing "Unidentified route triggers not found response"
       (let [request (assoc request :janus.ring/router nil)]
         (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
-               ((make-dispatcher) request)))))
+               ((make-dispatcher) request)))
+        ((make-dispatcher dispatch-table) request respond raise)
+        (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
+               @response))))
     (testing "Unimplemented handler triggers not implemented response"
       (let [router (route/identify router "/aX")
             request (assoc request :janus.ring/router router :route-params {})]
         (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}}
-               ((make-dispatcher) request)))))))
+               ((make-dispatcher) request)))
+        ((make-dispatcher) request respond raise)
+        (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}}
+               @response))))))
 
 (deftest combined-middleware
   (let [request (assoc (mock/request :get "/aX") :params {:x "!"})
@@ -101,5 +120,10 @@
         router (route/router routes)
         dispatch-table {:a handler 'b handler}
         handler (wrap-identify (make-dispatcher dispatch-table) router)
-        response (handler request)]
-    (is (= ["/aX" {:x "!" :a "aX"}] response))))
+        response (atom nil)
+        respond #(reset! response %)
+        exception (atom nil)
+        raise #(reset! exception %)]
+    (is (= ["/aX" {:x "!" :a "aX"}] (handler request)))
+    (handler request respond raise)
+    (is (= ["/aX" {:x "!" :a "aX"}] @response))))
