@@ -20,7 +20,8 @@
                          [commons-codec "1.13"]]
   :profiles {:dev {:dependencies [[ring/ring-mock "0.4.0"]
                                   [com.bhauman/figwheel-main "0.2.3" :exclusions [org.clojure/clojurescript]]]}}
-  :doo {:build "test"}
+  :doo {:build "test"
+        :alias {:default [:phantom]}}
   :cljsbuild {:builds [{:id "test" ; https://lambdaisland.com/episodes/testing-clojurescript
                         :source-paths ["src" "test"]
                         :compiler {:output-to "resources/public/js/testable.js"
