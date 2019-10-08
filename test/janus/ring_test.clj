@@ -10,10 +10,10 @@
                       ([request] request)
                       ([request respond raise] (respond request)))
                     (wrap-identify router))
-        response (atom nil)
-        respond #(reset! response %)
-        exception (atom nil)
-        raise #(reset! exception %)]
+        response (promise)
+        respond #(deliver response %)
+        exception (promise)
+        raise #(deliver exception %)]
     (testing "Invalid URI returns response with status 400"
       (let [request (-> (mock/request :get "/")
                         (assoc :uri "/[")) ; have to force in an invalid URI ... mock will not tolerate it
@@ -25,16 +25,35 @@
         (handler request respond raise)
         (is (= 400 (@response :status)))))))
 
+(deftest handle-identification-exceptions
+  (let [router (janus.route/router [:R {:a "foo" 'a "bar"}])
+        response (promise)
+        respond #(deliver response %)
+        exception (promise)
+        raise #(deliver exception %)
+        exception-handler (fn [& _] (throw (Exception. "WTF?")))
+        handler (-> (fn echo
+                      ([request] request)
+                      ([request respond raise] (respond request)))
+                    (wrap-identify router exception-handler))]
+    (testing "Unusual exceptions are handled gracefully"
+      (let [request (-> (mock/request :get "/")
+                        (dissoc :uri))]
+        (is (thrown? Exception (handler request)))
+        (handler request respond raise)
+        (is (not (realized? response)))
+        (is (instance? Exception @exception))))))
+
 (deftest add-route-identifier
   (let [router (janus.route/router [:R {:a "foo" 'a "bar"}])
         handler (-> (fn echo
                       ([request] request)
                       ([request respond raise] (respond request)))
                     (wrap-identify router))
-        response (atom nil)
-        respond #(reset! response %)
-        exception (atom nil)
-        raise #(reset! exception %)]
+        response (promise)
+        respond #(deliver response %)
+        exception (promise)
+        raise #(deliver exception %)]
     (testing "Identified route and route-params are available in sync request"
       (let [request (mock/request :get "/foo")
             response (handler request)]
@@ -66,37 +85,53 @@
                                :c [#"c(?:.*)" #'handler]
                                :d [#"d(?:.*)" handler]}]]
         router (route/router routes)
-        dispatch-table {:a handler 'b handler}
-        response (atom nil)
-        respond #(reset! response %)
-        exception (atom nil)
-        raise #(reset! exception %)]
+        dispatch-table {:a handler 'b handler}]
     (testing "dispatch on keyword"
       (let [router (route/identify router "/aX")
-            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
+            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))
+            response (promise)
+            respond #(deliver response %)
+            exception (promise)
+            raise #(deliver exception %)]
         (is (= ["/aX" {:x "!" :a "aX"}] ((make-dispatcher dispatch-table) request)))
         ((make-dispatcher dispatch-table) request respond raise)
         (is (= ["/aX" {:x "!" :a "aX"}] @response))))
     (testing "dispatch on symbol"
       (let [router (route/identify router "/bX")
-            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
+            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))
+            response (promise)
+            respond #(deliver response %)
+            exception (promise)
+            raise #(deliver exception %)]
         (is (= ["/bX" {:x "!" :b "bX"}] ((make-dispatcher dispatch-table) request)))
         ((make-dispatcher dispatch-table) request respond raise)
         (is (= ["/bX" {:x "!" :b "bX"}] @response))))
     (testing "dispatch on var"
       (let [router (route/identify router "/cX")
-            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
+            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))
+            response (promise)
+            respond #(deliver response %)
+            exception (promise)
+            raise #(deliver exception %)]
         (is (= ["/cX" {:x "!" :c "cX"}] ((make-dispatcher) request)))
         ((make-dispatcher dispatch-table) request respond raise)
         (is (= ["/cX" {:x "!" :c "cX"}] @response))))
     (testing "dispatch on function"
       (let [router (route/identify router "/dX")
-            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))]
+            request (assoc request :janus.ring/router router :route-params (into {} (route/parameters router)))
+            response (promise)
+            respond #(deliver response %)
+            exception (promise)
+            raise #(deliver exception %)]
         (is (= ["/dX" {:x "!" :d "dX"}] ((make-dispatcher) request)))
         ((make-dispatcher dispatch-table) request respond raise)
         (is (= ["/dX" {:x "!" :d "dX"}] @response))))
     (testing "Unidentified route triggers not found response"
-      (let [request (assoc request :janus.ring/router nil)]
+      (let [request (assoc request :janus.ring/router nil)
+            response (promise)
+            respond #(deliver response %)
+            exception (promise)
+            raise #(deliver exception %)]
         (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
                ((make-dispatcher) request)))
         ((make-dispatcher dispatch-table) request respond raise)
@@ -104,7 +139,11 @@
                @response))))
     (testing "Unimplemented handler triggers not implemented response"
       (let [router (route/identify router "/aX")
-            request (assoc request :janus.ring/router router :route-params {})]
+            request (assoc request :janus.ring/router router :route-params {})
+            response (promise)
+            respond #(deliver response %)
+            exception (promise)
+            raise #(deliver exception %)]
         (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}}
                ((make-dispatcher) request)))
         ((make-dispatcher) request respond raise)
@@ -120,10 +159,10 @@
         router (route/router routes)
         dispatch-table {:a handler 'b handler}
         handler (wrap-identify (make-dispatcher dispatch-table) router)
-        response (atom nil)
-        respond #(reset! response %)
-        exception (atom nil)
-        raise #(reset! exception %)]
+        response (promise)
+        respond #(deliver response %)
+        exception (promise)
+        raise #(deliver exception %)]
     (is (= ["/aX" {:x "!" :a "aX"}] (handler request)))
     (handler request respond raise)
     (is (= ["/aX" {:x "!" :a "aX"}] @response))))

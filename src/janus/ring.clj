@@ -65,5 +65,6 @@
       (try (handler (identify-request router request))
            (catch Exception e (exception-handler e))))
      ([request respond raise]
-      (try (handler (identify-request router request) respond raise)
-           (catch Exception e (respond (exception-handler e))))))))
+      (try (try (handler (identify-request router request) respond raise)
+                (catch Exception e (respond (exception-handler e))))
+           (catch Throwable e (raise e)))))))
