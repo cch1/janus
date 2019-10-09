@@ -3,7 +3,9 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v1.2.0...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v1.3.0...HEAD)
+## [1.3.0](https://github.com/cch1/janus/compare/v1.2.0...v1.3.0)
+### Added support for the Ring async request model
 ## [1.2.0](https://github.com/cch1/janus/compare/v1.1.0...v1.2.0)
 ### Added
 - Clojurescript support.
