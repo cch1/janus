@@ -196,6 +196,14 @@
     (is (= uri (-> router (generate params) path)))
     (is (= params (-> router (identify uri) parameters)))))
 
+(deftest demonstrate-recursive-wildcard-route-as-fallback-after-explicit-routes
+  (let [uri0 "/a/x"
+        uri1 "/a/b/c/leaf"
+        router (-> [:R [nil :R {'a ["a" 'a [['x ["x" identity {}]]
+                                            (recursive-route '* true identity)]]}]] router)]
+    (is (= [['a "a"] ['x "x"]] (-> router (identify uri0) parameters)))
+    (is (= [['a "a"] ['* "b"] ['* "c"] ['* "leaf"]] (-> router (identify uri1) parameters)))))
+
 (deftest generalized-path
   (let [universe (router astronomy)
         sol (generate universe ['galaxies [:galaxy "Milky Way"]
