@@ -2,13 +2,15 @@
   "Identify routes from Ring-compatible requests and dispatch to Ring-compatible handlers"
   (:require [janus.route :as route]))
 
-(defn not-found
-  ([_] {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}})
-  ([_ respond _] (respond {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}})))
+(let [response {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain; charset=US-ASCII"}}]
+  (defn not-found
+    ([_] response)
+    ([_ respond _] (respond response))))
 
-(defn not-implemented
-  ([_] {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}})
-  ([_ respond _] (respond {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}})))
+(let [response {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain; charset=US-ASCII"}}]
+  (defn not-implemented
+    ([_] response)
+    ([_ respond _] (respond response))))
 
 (extend-protocol janus.route/Dispatchable
   nil
@@ -43,7 +45,7 @@
 (defmulti exception-handler "Handle exceptions that don't allow routing to execute" class)
 
 (defmethod exception-handler java.net.URISyntaxException
-  [e] {:status 400 :body "Invalid URI Syntax" :headers {"Content-Type" "text/plain"}})
+  [e] {:status 400 :body "Invalid URI Syntax" :headers {"Content-Type" "text/plain; charset=US-ASCII"}})
 
 (defmethod exception-handler :default
   [e] (throw e))

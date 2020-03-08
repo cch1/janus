@@ -132,10 +132,10 @@
             respond #(deliver response %)
             exception (promise)
             raise #(deliver exception %)]
-        (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
+        (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain; charset=US-ASCII"}}
                ((make-dispatcher) request)))
         ((make-dispatcher dispatch-table) request respond raise)
-        (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain"}}
+        (is (= {:status 404 :body "Not Found" :headers {"Content-Type" "text/plain; charset=US-ASCII"}}
                @response))))
     (testing "Unimplemented handler triggers not implemented response"
       (let [router (route/identify router "/aX")
@@ -144,10 +144,10 @@
             respond #(deliver response %)
             exception (promise)
             raise #(deliver exception %)]
-        (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}}
+        (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain; charset=US-ASCII"}}
                ((make-dispatcher) request)))
         ((make-dispatcher) request respond raise)
-        (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain"}}
+        (is (= {:status 501 :body "Not Implemented" :headers {"Content-Type" "text/plain; charset=US-ASCII"}}
                @response))))))
 
 (deftest combined-middleware
