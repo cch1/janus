@@ -89,6 +89,6 @@ While the canonical format for routes is useful for understanding the full capab
 
 ## License
 
-Copyright © 2017 Chris Hapgood
+Copyright © 2020 Chris Hapgood
 
 Distributed under the Eclipse Public License version 1.0.
