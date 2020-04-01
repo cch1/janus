@@ -7,4 +7,9 @@
                   :extra-deps {ring/ring-mock {:mvn/version "0.4.0"}}}
            :pedantic {:override-deps {com.google.errorprone/error_prone_annotations {:mvn/version "2.3.4"}
                                       com.google.code.findbugs/jsr305 {:mvn/version "3.0.2"}
-                                      commons-codec {:mvn/version "1.14"}}}}}
+                                      commons-codec {:mvn/version "1.14"}}}
+           :cljs-test-runner {:extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}
+                              :main-opts ["-m" "cljs-test-runner.main"]}
+           :clj-test-runner {:extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                                     :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+                             :main-opts ["-m" "cognitect.test-runner"]}}}
