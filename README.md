@@ -22,19 +22,19 @@ These are the core functions of a "pure" routing engine and they should be power
  1. The path components of URIs are assumed (per [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)) to be a string of `/`-separated and [url-encoded](https://en.wikipedia.org/wiki/Percent-encoding) segments (note that percent-encoding is not the same thing as RFC-compatible url-encoding, notably in the treatment of `+`).
  1. The route abstraction handles encoding and destructuring transparently; it models the URI
     as a sequence of URL-decoded string segments.
- 1. Route matching is decomplected from handler dispatching per the Ring model.
+ 1. Route identification is decomplected from dispatching to the handler.
  1. For all but the most complex routes, pure data can represent the entire route definition.
  1. Forward (generation) and backward (identification) routing are (with appropriate care) inverses of each other.
- 1. Protocols are used for most conceptual tasks, e.g. segment matching and segment generation.
+ 1. Protocols are used for most conceptual tasks, e.g. segment matching/generation and dispatching.
  1. Dispatching is based on route matching only.  There is no support for dispatching based on other attributes of an HTTP request, such as method.  Other libraries, such as [liberator](https://github.com/clojure-liberator/liberator), do an excellent job of managing HTTP method-based processing _after_ routing.
  1. Routing works the same in Clojure and Clojurescript.
  1. A single compact data structure should represent all that is necessary for matching, generating and even dispatching.  For common route components (constant strings, leaf nodes, etc), the syntax should be particularly compact.
  1. Both forward and backwards routing can be performed in the scope of an existing route.
 
 ## Comparisons
- * Compared to Compojure, janus offers routes-as-data, (theoretical) Clojurescript compatibility, invertible routes, independent route identification and dispatching, and protocol-based extensibility.   On the downside, janus offers no support for dispatching based on HTTP method.
+ * Compared to Compojure, janus offers routes-as-data, Clojurescript compatibility, invertible routes, independent route identification and dispatching, and protocol-based extensibility.   On the downside, janus offers no support for dispatching based on HTTP method.
  * Compared to bidi, janus offers (generally) invertible routes, independent route identification and dispatching, and a higher-level abstraction that deals with encoding and destructuring.  On the downside, janus offers no support for dispatching based on HTTP method.
- * Compared to wire, janus offers invertible routes, (theoretical) Clojurescript compatibility and protocol-based extensibility.  On the downside, janus offers no support for dispatching based on HTTP method.
+ * Compared to wire, janus offers invertible routes, Clojurescript compatibility and protocol-based extensibility.  On the downside, janus offers no support for dispatching based on HTTP method.
 
 ## Usage
 
@@ -60,16 +60,16 @@ Only when the identification of route segments is not guaranteed to be unique do
 	 ...
      [identifiableN [as-segmentN dispatchableN routesN]]
 
-Routes are organized as a tree: there is one root route and all child routes have exactly one parent.
+Routes are organized as a tree: there is one root route (which can most easily be represented as a vector tuple) and all child routes have exactly one parent.
 
 The elements of a route are:
 
  * `identifiable` is any instance of `clojure.lang.Named`.  This includes keywords and symbols.  Keywords should be used when the matching of the route yields useful information.  Symbols should be used for "constant" routes.  This convention is leveraged in janus' ring support namespace.
- * `as-segment` is anything satisfying `janus.route.AsSegment`, which includes strings, keywords, regexes, functions and others.  It is easy to extend AsSegment to accommodate custom iterpretations.  The role of `as-segment` is twofold: to match inbound route segements (yielding route parameters) and to generate outbound route segements.  The semantics of each are as follows:
+ * `as-segment` is anything satisfying `janus.route.AsSegment`, which includes strings, keywords, regexes, functions and others.  It is easy to extend AsSegment to accommodate custom interpretations.  The role of `as-segment` is twofold: to match inbound route segements (yielding route parameters) and to generate outbound route segements.  The default semantics of each are as follows:
 
   * `javal.lang.String`: Matches itself only, returning itself as a route parameter.  Generates itself always.
   * `clojure.lang.Keyword`: Matches its name only, returning its name as a route parameter.  Generates its name always.
-  * `java.lang.Boolean`: Matches when true, never when false, and returns inbound segment.  Generates inbound segment as outbound segment.
+  * `java.lang.Boolean`: Matches when true, never when false, and returns inbound segment.  Generates its single string parameter (such as the inbound segment) as the outbound segment.
   * `java.util.regex.Pattern`: Matches when regex matches inbound segment and returns result of regex match as route parameter(s).  Generates either the single result of matching inbound segment or the concatenation of a capture group-matched result.
   * `clojure.lang.Fn`: Matches when function applied to inbound segment returns a truthy result and returns the result as the route parameter.  Generates that same result as the outbound route segment.
   * `clojure.lang.PersistentVector`: Matches when first element (an AsSegment) matches.  Generates what second element (an AsSegment) generates.  Note that the result of matching with the first element becomes the route parameter(s) that are provided as arguments to the second.

@@ -29,15 +29,15 @@
   #?(:cljs string :clj String) ; constant, invertible
   (match [this segment] (when (= this segment) segment))
   (build [this args] (if (sequential? args)
-                       (apply #?(:cljs gstring/format :clj format) this args)
+                       (apply #?(:cljs gstring/format :clj format) this args) ; potential inverse of regex
                        this))
   #?(:cljs cljs.core/Keyword :clj clojure.lang.Keyword) ; constant, invertible
   (match [this segment] (when (= (name this) segment) segment))
   (build [this _] (name this))
   #?(:cljs boolean :clj java.lang.Boolean) ; invertible
   (match [this segment] (when this segment))
-  (build [this args] args)
-  #?(:cljs js/RegExp :clj java.util.regex.Pattern) ; invertible
+  (build [this arg] arg)
+  #?(:cljs js/RegExp :clj java.util.regex.Pattern) ; invertible when used cautiously
   (match [this segment] (when-let [m (re-matches this segment)]
                           (cond (string? m) m
                                 (vector? m) (rest m))))
