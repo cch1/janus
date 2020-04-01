@@ -13,11 +13,11 @@
                   ["deploy" "clojars"]]
   :min-lein-version "2.5.2"
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/clojurescript "1.10.520"]
-                 [org.clojure/core.match "0.3.0"]]
-  :managed-dependencies [[com.google.errorprone/error_prone_annotations "2.3.3"]
+                 [org.clojure/clojurescript "1.10.597"]
+                 [org.clojure/core.match "1.0.0"]]
+  :managed-dependencies [[com.google.errorprone/error_prone_annotations "2.3.4"]
                          [com.google.code.findbugs/jsr305 "3.0.2"]
-                         [commons-codec "1.13"]]
+                         [commons-codec "1.14"]]
   :profiles {:dev {:dependencies [[ring/ring-mock "0.4.0"]
                                   [com.bhauman/figwheel-main "0.2.3" :exclusions [org.clojure/clojurescript]]]}}
   :doo {:build "test"
