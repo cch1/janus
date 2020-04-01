@@ -122,13 +122,17 @@
       (is (= params (parameters (identify r (path (generate r params)))))))))
 
 (deftest url-encoded
-  (testing "decode"
-    (let [router (-> [:R [nil :R {'top [true 'top {}]}]] router)]
-      (is (= [['top "a|b"]] (parameters (identify router "/a%7Cb"))))
-      (is (= [['top "a|b"]] (parameters (identify router "/a%7Cb"))))))
-  (testing "encode"
-    (let [router (-> [:R [nil :R {'top ["a|b" 'top {}]}]] router)]
-      (is (#{"/a%7Cb" "/a%7cb"} (path (generate router ['top])))))))
+  (let [r (-> [:R [nil :R {'top [true 'top {}]}]] router)]
+    (testing "decode"
+      (is (= [['top "a|b"]] (parameters (identify r "/a%7Cb"))))
+      (is (= [['top "a b"]] (parameters (identify r "/a%20b"))))
+      (is (= [['top "a+b"]] (parameters (identify r "/a+b"))))
+      (is (= [['top "a/b"]] (parameters (identify r "/a%2fb")))))
+    (testing "encode"
+      (is (#{"/a%7cb" "/a%7Cb"} (path (generate r [['top "a|b"]]))))
+      (is (= "/a%20b" (path (generate r [['top "a b"]]))))
+      (is (#{"/a+b" "/a%2bb" "/a%2Bb"} (path (generate r [['top "a+b"]]))))
+      (is (#{"/a%2fb" "/a%2Fb"} (path (generate r [['top "a/b"]])))))))
 
 (deftest invertible
   (testing "string"

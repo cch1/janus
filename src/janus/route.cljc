@@ -1,14 +1,15 @@
 (ns janus.route
   "Construct routing tree, identify route from URIs and generate route from parameters"
   (:import #?@(:cljs (goog.Uri)
-               :clj ([java.net URI URLDecoder URLEncoder])))
+               :clj ([java.net URI])))
   (:require [clojure.string :as string]
             [clojure.zip :as z]
             [clojure.spec.alpha :as s]
             [clojure.core.match :as m]
             [clojure.pprint]
             #?@(:cljs ([goog.string :as gstring]
-                       goog.string.format))))
+                       goog.string.format)
+                :clj ([ring.util.codec]))))
 
 (defprotocol Identifiable
   (ident [this] "Identify this logical route segment"))
@@ -186,21 +187,8 @@
   #?(:clj (.getRawPath (.normalize (URI. uri)))
      :cljs (.getPath (goog.Uri. uri))))
 
-(defn- url-encode
-  [s]
-  {:pre [(string? s)] :post [(string? %)]}
-  (-> s
-      #?(:clj (URLEncoder/encode "UTF-8")
-         :cljs (js/encodeURIComponent))
-      (.replace "+" "%20")))
-
-(defn- url-decode
-  ([s]
-   {:pre [(string? s)]}
-   #?(:clj (url-decode s "UTF-8")
-      :cljs (js/decodeURIComponent s)))
-  #?(:clj ([s encoding]
-           (URLDecoder/decode s encoding))))
+(def url-encode #?(:clj ring.util.codec/url-encode :cljs js/encodeURIComponent))
+(def url-decode #?(:clj ring.util.codec/url-decode :cljs js/decodeURIComponent))
 
 (defrecord Router [zipper params]
   Routable

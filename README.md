@@ -19,7 +19,7 @@ The way I see it, there are two jobs for a router
 These are the core functions of a "pure" routing engine and they should be powerful and generally uncompromised by secondary concerns.
 
 ## Design Goals
- 1. The path components of URIs are assumed (per [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)) to be a string of `/`-separated and [url-encoded](https://en.wikipedia.org/wiki/Percent-encoding) segments.
+ 1. The path components of URIs are assumed (per [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)) to be a string of `/`-separated and [url-encoded](https://en.wikipedia.org/wiki/Percent-encoding) segments (note that percent-encoding is not the same thing as RFC-compatible url-encoding, notably in the treatment of `+`).
  1. The route abstraction handles encoding and destructuring transparently; it models the URI
     as a sequence of URL-decoded string segments.
  1. Route matching is decomplected from handler dispatching per the Ring model.
