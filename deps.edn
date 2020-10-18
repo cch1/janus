@@ -1,15 +1,15 @@
 {:deps {org.clojure/clojure {:mvn/version "1.10.1"}
-        org.clojure/clojurescript {:mvn/version "1.10.597"}
+        org.clojure/clojurescript {:mvn/version "1.10.773"}
         org.clojure/core.match {:mvn/version "1.0.0"}}
  :paths ["src" "resources"]
- :aliases {:dev {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.0" :exclusions [org.clojure/clojurescript]}}}
+ :aliases {:dev {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.11" :exclusions [org.clojure/clojurescript]}}}
            :test {:extra-paths ["test"]
                   :extra-deps {ring/ring-mock {:mvn/version "0.4.0"}}}
-           :pedantic {:override-deps {com.google.errorprone/error_prone_annotations {:mvn/version "2.3.4"}
+           :pedantic {:override-deps {com.google.errorprone/error_prone_annotations {:mvn/version "2.4.0"}
                                       com.google.code.findbugs/jsr305 {:mvn/version "3.0.2"}
-                                      commons-codec {:mvn/version "1.14"}}}
-           :cljs-test-runner {:extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}
-                              :main-opts ["-m" "cljs-test-runner.main"]}
-           :clj-test-runner {:extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                                     :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
-                             :main-opts ["-m" "cognitect.test-runner"]}}}
+                                      commons-codec/commons-codec {:mvn/version "1.15"}}}
+           :cljs-test-runner {:main-opts ["-m" "cljs-test-runner.main"]
+                              :extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}}
+           :clj-test-runner {:main-opts ["-m" "cognitect.test-runner"]
+                             :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                                     :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}}}}
