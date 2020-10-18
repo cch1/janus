@@ -11,7 +11,7 @@ A Clojure routing library.  This is my second initiative on this front -the firs
 ## Context
 For something that web developers understand intuitively, the exact interpretation of "URL"s is rife with misunderstandings, competing standards and imcompatible interpretations.  In an effort to be explicit, for janus a URI is the [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)-compliant name by which a local resource is referenced on the web.
 
-The way I see it, there are two jobs for a router
+There are two primary requirements for a router:
 
 1. Identify inbound routes -this could be satisfied by a tree of identifiers associated with regular expressions.
 2. Generate outbound routes -this could be satisfied by a tree of identifiers associated with `format` strings.
@@ -63,27 +63,27 @@ Routes are organized as a tree: there is one root route (which can most easily b
 
 The elements of a route are:
 
- * `identifiable` is any instance of `clojure.lang.Named`.  This includes keywords and symbols.  Keywords should be used when the matching of the route yields useful information.  Symbols should be used for "constant" routes.  This convention is leveraged in janus' ring support namespace.
- * `as-segment` is anything satisfying `janus.route.AsSegment`, which includes strings, keywords, regexes, functions and others.  It is easy to extend AsSegment to accommodate custom interpretations.  The role of `as-segment` is twofold: to match inbound route segements (yielding route parameters) and to generate outbound route segements.  The default semantics of each are as follows:
-  * `javal.lang.String`: Matches itself only, returning itself as a route parameter.  Generates itself always.
-  * `clojure.lang.Keyword`: Matches its name only, returning its name as a route parameter.  Generates its name always.
-  * `java.lang.Boolean`: Matches when true, never when false, and returns inbound segment.  Generates its single string parameter (such as the inbound segment) as the outbound segment.
-  * `java.util.regex.Pattern`: Matches when regex matches inbound segment and returns result of regex match as route parameter(s).  Generates either the single result of matching inbound segment or the concatenation of a capture group-matched result.
-  * `clojure.lang.Fn`: Matches when function applied to inbound segment returns a truthy result and returns the result as the route parameter.  Generates that same result as the outbound route segment.
-  * `clojure.lang.PersistentVector`: Matches when first element (an AsSegment) matches.  Generates what second element (an AsSegment) generates.  Note that the result of matching with the first element becomes the route parameter(s) that are provided as arguments to the second.
+1. `identifiable` is any instance of `clojure.lang.Named`.  This includes keywords and symbols.  Keywords should be used when the matching of the route yields useful information.  Symbols should be used for "constant" routes.  This convention is leveraged in janus' ring support namespace.
+2. `as-segment` is anything satisfying `janus.route.AsSegment`, which includes strings, keywords, regexes, functions and others.  It is easy to extend AsSegment to accommodate custom interpretations.  The role of `as-segment` is twofold: to match inbound route segements (yielding route parameters) and to generate outbound route segements.  The default semantics of each are as follows:
+   * `javal.lang.String`: Matches itself only, returning itself as a route parameter.  Generates itself always.
+   * `clojure.lang.Keyword`: Matches its name only, returning its name as a route parameter.  Generates its name always.
+   * `java.lang.Boolean`: Matches when true, never when false, and returns inbound segment.  Generates its single string parameter (such as the inbound segment) as the outbound segment.
+   * `java.util.regex.Pattern`: Matches when regex matches inbound segment and returns result of regex match as route parameter(s).  Generates either the single result of matching inbound segment or the concatenation of a capture group-matched result.
+   * `clojure.lang.Fn`: Matches when function applied to inbound segment returns a truthy result and returns the result as the route parameter.  Generates that same result as the outbound route segment.
+   * `clojure.lang.PersistentVector`: Matches when first element (an AsSegment) matches.  Generates what second element (an AsSegment) generates.  Note that the result of matching with the first element becomes the route parameter(s) that are provided as arguments to the second.
 
- * `dispatchable` is anything satisfying `janus.route.Dispatchable`, which includes functions, vars and instances of `clojure.lang.Named`.  FIXME: Document better, why is protocol not enforced specifically during normalization?
- * `routes` is a recursive seqable collection of child routes.
+3. `dispatchable` is anything satisfying `janus.route.Dispatchable`, which includes functions, vars and instances of `clojure.lang.Named`.  FIXME: Document better, why is protocol not enforced specifically during normalization?
+4. `routes` is a recursive seqable collection of child routes.
 
 While the canonical format for routes is useful for understanding the full capabilities of routing in janus, there are many abbreviated representations that are acceptable.  There is no run-time performance penalty for expressing routes in any abbreviated format as all routes are conformed to data types during router construction.
 
- 1. Only the `identifiable` is required to represent a route.  If the second element of the pair is missing or nil, default values are assigned based on the identifiable.  For example:
+* Only the `identifiable` is required to represent a route.  If the second element of the pair is missing or nil, default values are assigned based on the identifiable.  For example:
 
         [:root nil] => [:root [nil :root {}]]
         [:root] => [:root [nil :root {}]]
- Of course suppressing the second element is not possible when using a map to represent a sequence of routes.
+   Of course suppressing the second element is not possible when using a map to represent a sequence of routes.
 
- 1. If the second element of the route pair is missing components, they are either inferred from the identifier or default values are supplied.
+* If the second element of the route pair is missing components, they are either inferred from the identifier or default values are supplied.
 
 ## License
 
