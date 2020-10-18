@@ -9,7 +9,7 @@ A Clojure routing library.  This is my second initiative on this front -the firs
  * [pedestal](https://github.com/pedestal/pedestal)
 
 ## Context
-The interpretation of "URL"s is rife with misunderstandings, competing standards and imcompatible interpretations.  In the context of janus, a URI is the name by which a local resource is referenced on the web.
+For something that web developers understand intuitively, the exact interpretation of "URL"s is rife with misunderstandings, competing standards and imcompatible interpretations.  In an effort to be explicit, for janus a URI is the [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)-compliant name by which a local resource is referenced on the web.
 
 The way I see it, there are two jobs for a router
 
@@ -20,8 +20,7 @@ These are the core functions of a "pure" routing engine and they should be power
 
 ## Design Goals
  1. The path components of URIs are assumed (per [RFC 3986](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)) to be a string of `/`-separated and [url-encoded](https://en.wikipedia.org/wiki/Percent-encoding) segments (note that percent-encoding is not the same thing as RFC-compatible url-encoding, notably in the treatment of `+`).
- 1. The route abstraction handles encoding and destructuring transparently; it models the URI
-    as a sequence of URL-decoded string segments.
+ 1. The route abstraction handles encoding and destructuring transparently; it models the URI as a sequence of URL-decoded string segments.
  1. Route identification is decomplected from dispatching to the handler.
  1. For all but the most complex routes, pure data can represent the entire route definition.
  1. Forward (generation) and backward (identification) routing are (with appropriate care) inverses of each other.
@@ -29,7 +28,7 @@ These are the core functions of a "pure" routing engine and they should be power
  1. Dispatching is based on route matching only.  There is no support for dispatching based on other attributes of an HTTP request, such as method.  Other libraries, such as [liberator](https://github.com/clojure-liberator/liberator), do an excellent job of managing HTTP method-based processing _after_ routing.
  1. Routing works the same in Clojure and Clojurescript.
  1. A single compact data structure should represent all that is necessary for matching, generating and even dispatching.  For common route components (constant strings, leaf nodes, etc), the syntax should be particularly compact.
- 1. Both forward and backwards routing can be performed in the scope of an existing route.
+ 1. Both forward and backwards routing can be performed in the scope of a parent route.
 
 ## Comparisons
  * Compared to Compojure, janus offers routes-as-data, Clojurescript compatibility, invertible routes, independent route identification and dispatching, and protocol-based extensibility.   On the downside, janus offers no support for dispatching based on HTTP method.
@@ -66,7 +65,6 @@ The elements of a route are:
 
  * `identifiable` is any instance of `clojure.lang.Named`.  This includes keywords and symbols.  Keywords should be used when the matching of the route yields useful information.  Symbols should be used for "constant" routes.  This convention is leveraged in janus' ring support namespace.
  * `as-segment` is anything satisfying `janus.route.AsSegment`, which includes strings, keywords, regexes, functions and others.  It is easy to extend AsSegment to accommodate custom interpretations.  The role of `as-segment` is twofold: to match inbound route segements (yielding route parameters) and to generate outbound route segements.  The default semantics of each are as follows:
-
   * `javal.lang.String`: Matches itself only, returning itself as a route parameter.  Generates itself always.
   * `clojure.lang.Keyword`: Matches its name only, returning its name as a route parameter.  Generates its name always.
   * `java.lang.Boolean`: Matches when true, never when false, and returns inbound segment.  Generates its single string parameter (such as the inbound segment) as the outbound segment.
