@@ -1,9 +1,22 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).  In the spirit of Rich Hickey's "Spec-ulation" keynote address at the 2016 Clojure/conj, no backwards-incompatible changes will be made to any public var after version 1.0.0.
 
-Note that versioning is managed using [lein-v](https://clojars.org/com.roomkey/lein-v).
+Note that versioning is managed using [garamond](https://github.com/workframers/garamond).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v1.3.0...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v1.3.3...HEAD)
+## [1.3.3](https://github.com/cch1/janus/compare/v1.3.2...v1.3.3)
+### Changed
+- Added a groupId (com.hapgood) where previously there was none.
+- Updated dependencies
+- Transitioned exclusively to clojure.tools.deps.alpha tooling ecosystem (no impact on artifact though).
+### Fixed
+- Enumerated dependency on `ring-codec`.
+## [1.3.2](https://github.com/cch1/janus/compare/v1.3.1...v1.3.2)
+### Fixed
+- Properly decode/encode `+` characters in the path.
+## [1.3.1](https://github.com/cch1/janus/compare/v1.3.0...v1.3.1)
+### Fixed
+- Specify the character set in text responses to mitigate vulnerability.
 ## [1.3.0](https://github.com/cch1/janus/compare/v1.2.0...v1.3.0)
 ### Added support for the Ring async request model
 ## [1.2.0](https://github.com/cch1/janus/compare/v1.1.0...v1.2.0)
