@@ -13,4 +13,27 @@
                               :extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}}
            :clj-test-runner {:main-opts ["-m" "cognitect.test-runner"]
                              :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                                     :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}}}}
+                                                                     :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}}
+           ;; --------------------------- Build/Deploy Tasks ----------------------------
+           ;; Bump the version by a patch and generate a corresponding pom file with the groupId "com.hapgood"
+           ;; $ clojure -M:project/pom patch -t
+           :project/pom {:main-opts ["-m" "garamond.main" "-g" "com.hapgood" "-p"]
+                         ;; because we don't need the project's dependencies loaded -graph parses the deps.edn "out-of-band":
+                         :replace-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
+           ;; $ clojure -X:project/jar
+           :project/jar {:replace-deps {seancorfield/depstar {:mvn/version "RELEASE"}}
+                         :exec-fn    hf.depstar/jar
+                         :exec-args  {:jar "janus.jar" :verbose true}}
+           ;; Test a local install with:
+           ;; $ clojure -X:project/install
+           :project/install {:replace-deps {org.clojure/tools.deps.alpha {:mvn/version "0.9.816"}
+                                            org.slf4j/slf4j-nop {:mvn/version "1.7.25"}}
+                             :ns-default clojure.tools.cli.api
+                             :exec-fn clojure.tools.cli.api/mvn-install
+                             ;; pom arg required due to a bug: https://clojure.atlassian.net/browse/TDEPS-169
+                             :exec-args {:pom "pom.xml" :jar "janus.jar"}}
+
+           ;; Then:
+           ;; $ env CLOJARS_USERNAME=cch1 CLOJARS_PASSWORD=<redacted> clj -M:project/clojars-signed janus.jar
+           :project/deploy {:main-opts ["-m" "deps-deploy.deps-deploy" "deploy" true]
+                            :replace-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}}}}
