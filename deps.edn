@@ -16,8 +16,8 @@
                                                                      :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}}
            ;; --------------------------- Build/Deploy Tasks ----------------------------
            ;; Bump the version by a patch and generate a corresponding pom file with the groupId "com.hapgood"
-           ;; $ clojure -M:project/pom patch -t
-           :project/pom {:main-opts ["-m" "garamond.main" "-g" "com.hapgood" "-p"]
+           ;; $ clojure -M:project/pom patch -t IncrementType
+           :project/pom {:main-opts ["-m" "garamond.main" "--group-id" "com.hapgood" "--scm-url" "https://github.com/cch1/janus" "-p"]
                          ;; because we don't need the project's dependencies loaded -graph parses the deps.edn "out-of-band":
                          :replace-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
            ;; $ clojure -X:project/jar
