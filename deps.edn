@@ -4,16 +4,17 @@
         ring/ring-codec {:mvn/version "1.1.2"}}
  :paths ["src"]
  :aliases {:dev {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.11" :exclusions [org.clojure/clojurescript]}}}
-           :test {:extra-paths ["test"]
-                  :extra-deps {ring/ring-mock {:mvn/version "0.4.0"}}}
            :pedantic {:override-deps {com.google.errorprone/error_prone_annotations {:mvn/version "2.4.0"}
                                       com.google.code.findbugs/jsr305 {:mvn/version "3.0.2"}
                                       commons-codec/commons-codec {:mvn/version "1.15"}}}
-           :cljs-test-runner {:main-opts ["-m" "cljs-test-runner.main"]
-                              :extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}}
-           :clj-test-runner {:main-opts ["-m" "cognitect.test-runner"]
-                             :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                                                     :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}}
+           :project/test-cljs {:main-opts ["-m" "cljs-test-runner.main"]
+                               :extra-paths ["test"]
+                               :extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}}
+           :project/test-clj {:main-opts ["-m" "cognitect.test-runner"]
+                              :extra-paths ["test"]
+                              :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                                                                      :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}
+                                           ring/ring-mock {:mvn/version "0.4.0"}}}
            ;; --------------------------- Build/Deploy Tasks ----------------------------
            ;; Bump the version by a patch and generate a corresponding pom file with the groupId "com.hapgood"
            ;; $ clojure -M:project/pom patch -t IncrementType
@@ -33,13 +34,13 @@
            ;;                   ;; pom arg required due to a bug: https://clojure.atlassian.net/browse/TDEPS-169
            ;;                   :exec-args {:pom "pom.xml" :jar "janus.jar"}}
            ;; ALTERNATE: locally install a the jar locally
-           :project/install {:main-opts ["-m" "deps-deploy.deps-deploy" "install" "janus.jar"]
+           :project/install {:main-opts ["-m" "deps-deploy.deps-deploy" "install" "janus.jar" false]
                              :replace-deps {slipset/deps-deploy {:mvn/version "RELEASE"}
                                             org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}}
 
            ;; Next, push code (and tags) to github to ensure they are available when cljdocs goes to find articles.
            ;; And then, only after the tagged commit is on GitHub:
            ;; $ env CLOJARS_USERNAME=cch1 CLOJARS_PASSWORD=<redacted> clj -M:project/deploy janus.jar
-           :project/deploy {:main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "janus.jar"]
+           :project/deploy {:main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "janus.jar" false]
                             :replace-deps {slipset/deps-deploy {:mvn/version "RELEASE"}
                                            org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}}}}
