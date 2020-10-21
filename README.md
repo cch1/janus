@@ -3,6 +3,8 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/com.hapgood/janus.svg)](https://clojars.org/com.hapgood/janus)
 
+[![cljdoc badge](https://cljdoc.org/badge/com.hapgood/janus)](https://cljdoc.org/d/com.hapgood/janus/CURRENT)
+
 A Clojure routing library.  This is my second initiative on this front -the first as a collaborator on the `wire` library.  Inspiration has been taken from:
 
  * [wire](https://github.com/mwmitchell/wire)

@@ -3,7 +3,10 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [garamond](https://github.com/workframers/garamond).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v1.4.2...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v1.4.3...HEAD)
+## [1.4.3](https://github.com/cch1/janus/compare/v1.4.2...v1.4.3)
+### Fixed
+- Add badges, tweak developer docs and, once more, try to fix docs on [cljdoc](https://cljdoc.org/d/com.hapgood/janus/1.4.3).
 ## [1.4.2](https://github.com/cch1/janus/compare/v1.4.1...v1.4.2)
 ### Fixed
 - Correct general docs on [cljdoc](https://cljdoc.org/d/com.hapgood/janus/1.4.2).
