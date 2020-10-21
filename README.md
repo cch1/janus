@@ -1,6 +1,8 @@
 # janus
 (Janus was a two-faced Roman god who looked forward to the future and backwards to the past.  His name gives us the name of the month `January`)
 
+[![Clojars Project](https://img.shields.io/clojars/v/com.hapgood/janus.svg)](https://clojars.org/com.hapgood/janus)
+
 A Clojure routing library.  This is my second initiative on this front -the first as a collaborator on the `wire` library.  Inspiration has been taken from:
 
  * [wire](https://github.com/mwmitchell/wire)
