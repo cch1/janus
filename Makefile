@@ -1,22 +1,25 @@
-.PHONY: all test test-clj test-cljs lint install deploy clean
+.PHONY: all test lint install deploy clean
 
 SHELL = /bin/bash
-CLOJARS_USERNAME = cch1
-SOURCE = $(shell find src/ -type f -name '*.clj' -or -name '*.cljc' -or -name '*.cljs' -or -name '*.edn')
+CLOJARS_USERNAME ?= cch1
+srcfiles = $(shell find src/ -type f -name '*.clj' -or -name '*.cljc' -or -name '*.cljs' -or -name '*.edn')
+testfiles = $(shell find test/ -type f -name '*.clj' -or -name '*.cljc' -or -name '*.cljs' -or -name '*.edn')
 
 all: test pom.xml janus.jar
 
-test: test-clj test-cljs
+test: tmp/test-clj tmp/test-cljs
 
-test-clj:
+tmp/test-clj: deps.edn $(testfiles) $(srcfiles)
 	clojure -M:project/test-clj
+	touch tmp/test-clj
 
-test-cljs:
+tmp/test-cljs: deps.edn $(testfiles) $(srcfiles)
 	clojure -M:project/test-cljs
+	touch tmp/test-cljs
 
 lint: tmp/lint
 
-tmp/lint: $(SOURCE)
+tmp/lint: $(srcfiles)
 	-clojure -M:lint/kondo
 	touch tmp/lint
 
@@ -27,10 +30,10 @@ else
 	clojure -M:project/pom
 endif
 
-janus.jar: pom.xml $(SOURCE)
+janus.jar: pom.xml $(srcfiles)
 	clojure -X:project/jar
 
-install: pom.xml janus.jar
+install: janus.jar
 	clojure -X:project/install
 
 deploy: janus.jar
