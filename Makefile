@@ -1,8 +1,8 @@
-.PHONY: test test-clj test-cljs install all clean
+.PHONY: all test test-clj test-cljs lint install deploy clean
 
 SHELL = /bin/bash
-INCREMENT = MajorMinorPatch
 CLOJARS_USERNAME = cch1
+SOURCE = $(shell find src/ -type f -name '*.clj' -or -name '*.cljc' -or -name '*.cljs' -or -name '*.edn')
 
 all: test pom.xml janus.jar
 
@@ -14,18 +14,26 @@ test-clj:
 test-cljs:
 	clojure -M:project/test-cljs
 
-pom.xml: deps.edn
-	clojure -M:project/pom -t $(INCREMENT)
+lint: tmp/lint
 
-janus.jar: pom.xml
+tmp/lint: $(SOURCE)
+	-clojure -M:lint/kondo
+	touch tmp/lint
+
+pom.xml: deps.edn
+ifdef UPDATE
+	clojure -M:project/pom -t $(UPDATE)
+else
+	clojure -M:project/pom
+endif
+
+janus.jar: pom.xml $(SOURCE)
 	clojure -X:project/jar
 
-build: pom.xml janus.jar
-
-install: build
+install: pom.xml janus.jar
 	clojure -X:project/install
 
-deploy: build
+deploy: janus.jar
 	env CLOJARS_USERNAME=$(CLOJARS_USERNAME) CLOJARS_PASSWORD=$(CLOJARS_PASSWORD) clj -M:project/deploy janus.jar
 
 clean:
