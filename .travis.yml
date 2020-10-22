@@ -1,4 +1,5 @@
 os: linux
+dist: trusty
 language: java
 script: make test
 install:
