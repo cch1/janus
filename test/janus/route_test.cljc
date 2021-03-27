@@ -2,8 +2,7 @@
   (:require [janus.route :refer [router identify identifiers parameters generate path parent root recursive-route dispatch
                                  ->Route ->RecursiveRoute AsSegment]]
             [clojure.tools.reader.edn :as edn]
-            #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :refer-macros [deftest is testing run-tests]])
+            [clojure.test :as test :refer [deftest is testing]]
             [clojure.string :as string]))
 
 (deftest router-construction
