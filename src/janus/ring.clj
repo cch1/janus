@@ -25,9 +25,9 @@
                            (route/dispatch* (get dispatch-table this not-implemented) args))))
 
 (defn- dispatch-request
-  [{:keys [route-params params] router ::router :as request}]
+  [{:keys [route-params params] :as request}]
   (if (and params route-params)
-    (update request :params merge (into {} (filter (fn [[k v]] (keyword? k)))
+    (update request :params merge (into {} (filter (fn [[k _]] (keyword? k)))
                                         route-params))
     request))
 
@@ -45,7 +45,7 @@
 (defmulti exception-handler "Handle exceptions that don't allow routing to execute" class)
 
 (defmethod exception-handler java.net.URISyntaxException
-  [e] {:status 400 :body "Invalid URI Syntax" :headers {"Content-Type" "text/plain; charset=US-ASCII"}})
+  [_] {:status 400 :body "Invalid URI Syntax" :headers {"Content-Type" "text/plain; charset=US-ASCII"}})
 
 (defmethod exception-handler :default
   [e] (throw e))

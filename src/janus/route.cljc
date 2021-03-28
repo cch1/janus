@@ -92,7 +92,7 @@
   Zippable
   (branch? [this] true)
   (children [this] [this])
-  (make-node [this children] this)
+  (make-node [this _] this)
   ConformableRoute
   (conform [this] this)
   AsSegment
@@ -210,7 +210,7 @@
       (loop [rz (z/down zipper) [[i p] & remaining-ps :as ps] ps params params]
         (when rz
           (let [route (z/node rz)]
-            (if-let [p' (when (= (ident route) i) (build route p))]
+            (if (and (= (ident route) i) (build route p))
               (if (seq remaining-ps)
                 (recur (z/down rz) remaining-ps (conj params p))
                 (Router. rz (conj params p)))
