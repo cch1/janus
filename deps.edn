@@ -15,16 +15,20 @@
                               :extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner.git"
                                                                       :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}
                                            ring/ring-mock {:mvn/version "0.4.0"}}}
+
            ;; --------------------------- Build/Deploy Tasks ----------------------------
-           ;; Bump the version by a patch and generate a corresponding pom file with the groupId "com.hapgood"
-           ;; $ clojure -M:project/pom patch -t IncrementType
-           :project/pom {:main-opts ["-m" "garamond.main" "--group-id" "com.hapgood" "--scm-url" "https://github.com/cch1/janus" "-p"]
+           ;; Bump the version by IncrementType, generate a corresponding tag and a corresponding pom file with the groupId "com.hapgood"
+           ;; $ clojure -M:project/pom [--tag] [IncrementType]
+           :project/pom {:main-opts ["-m" "garamond.main" "--group-id" "com.hapgood" "--scm-url" "https://github.com/cch1/janus" "--pom"]
                          ;; because we don't need the project's dependencies loaded -graph parses the deps.edn "out-of-band":
                          :replace-deps {com.workframe/garamond {:mvn/version "0.4.0"}}}
+           ;; Reference: https://github.com/workframers/garamond
+
            ;; $ clojure -X:project/jar
            :project/jar {:replace-deps {seancorfield/depstar {:mvn/version "RELEASE"}}
                          :exec-fn    hf.depstar/jar
                          :exec-args  {:jar "janus.jar" :verbose true}}
+
            ;; Test a local install with:
            ;; $ clojure -X:project/install
            ;; :project/install {:replace-deps {org.clojure/tools.deps.alpha {:mvn/version "0.9.816"}
@@ -33,7 +37,6 @@
            ;;                   :exec-fn clojure.tools.cli.api/mvn-install
            ;;                   ;; pom arg required due to a bug: https://clojure.atlassian.net/browse/TDEPS-169
            ;;                   :exec-args {:pom "pom.xml" :jar "janus.jar"}}
-           ;; ALTERNATE: locally install a the jar locally
            :project/install {:main-opts ["-m" "deps-deploy.deps-deploy" "install" "janus.jar" false]
                              :replace-deps {slipset/deps-deploy {:mvn/version "RELEASE"}
                                             org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}}
