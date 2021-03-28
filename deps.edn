@@ -30,16 +30,7 @@
                          :exec-args  {:jar "janus.jar" :verbose true}}
 
            ;; Test a local install with:
-           ;; $ clojure -X:project/install
-           ;; :project/install {:replace-deps {org.clojure/tools.deps.alpha {:mvn/version "0.9.816"}
-           ;;                                  org.slf4j/slf4j-nop {:mvn/version "1.7.25"}}
-           ;;                   :ns-default clojure.tools.cli.api
-           ;;                   :exec-fn clojure.tools.cli.api/mvn-install
-           ;;                   ;; pom arg required due to a bug: https://clojure.atlassian.net/browse/TDEPS-169
-           ;;                   :exec-args {:pom "pom.xml" :jar "janus.jar"}}
-           :project/install {:main-opts ["-m" "deps-deploy.deps-deploy" "install" "janus.jar" false]
-                             :replace-deps {slipset/deps-deploy {:mvn/version "RELEASE"}
-                                            org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}}
+           ;; $ clojure -X:deps mvn-install :jar "path-to-jar-file"
 
            ;; Next, push code (and tags) to github to ensure they are available when cljdocs goes to find articles.
            ;; And then, only after the tagged commit is on GitHub:
