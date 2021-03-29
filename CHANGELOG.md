@@ -3,7 +3,10 @@ All notable changes to this project will be documented in this file. This change
 
 Note that versioning is managed using [garamond](https://github.com/workframers/garamond).
 
-## [Unreleased](https://github.com/cch1/janus/compare/v1.4.4...HEAD)
+## [Unreleased](https://github.com/cch1/janus/compare/v1.4.5...HEAD)
+## [1.4.5](https://github.com/cch1/janus/compare/v1.4.4...v1.4.5)
+### Changed
+- Adjust CljDoc badge
 ## [1.4.4](https://github.com/cch1/janus/compare/v1.4.3...v1.4.4)
 ### Updated
 - Update dependencies
