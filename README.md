@@ -3,7 +3,7 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/com.hapgood/janus.svg)](https://clojars.org/com.hapgood/janus)
 
-[![cljdoc badge](https://cljdoc.org/badge/com.hapgood/janus)](https://cljdoc.org/d/com.hapgood/janus/CURRENT)
+[![](https://cljdoc.org/badge/com.hapgood/janus)](https://cljdoc.org/d/com.hapgood/janus/CURRENT)
 
 [![Build Status](https://travis-ci.org/cch1/janus.svg?branch=master)](https://travis-ci.org/cch1/janus)
 
