@@ -81,7 +81,7 @@ install: $(jar-file)
 	clojure -X:deps mvn-install :jar \"$(jar-file)\"
 
 deploy: $(jar-file)
-	env CLOJARS_USERNAME=$(CLOJARS_USERNAME) CLOJARS_PASSWORD=$(CLOJARS_PASSWORD) clj -M:project/deploy $(jar-file)
+	env CLOJARS_USERNAME=$(CLOJARS_USERNAME) CLOJARS_PASSWORD=$(CLOJARS_PASSWORD) clj -X:project/deploy :pom-file \"$(pom-file)\" :artifact \"$(jar-file)\"
 
 clean:
 	rm -f $(jar-file) $(pom-file)

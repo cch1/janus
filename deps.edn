@@ -35,6 +35,7 @@
            ;; Next, push code (and tags) to github to ensure they are available when cljdocs goes to find articles.
            ;; And then, only after the tagged commit is on GitHub:
            ;; $ env CLOJARS_USERNAME=cch1 CLOJARS_PASSWORD=<redacted> clj -M:project/deploy janus.jar
-           :project/deploy {:main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "janus.jar" false]
-                            :replace-deps {slipset/deps-deploy {:mvn/version "RELEASE"}
-                                           org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}}}}
+           :project/deploy {:extra-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}
+                            :exec-fn deps-deploy.deps-deploy/deploy
+                            :exec-args {:installer :remote
+                                        :sign-releases? false}}}}
